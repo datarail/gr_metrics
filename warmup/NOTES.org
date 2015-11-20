@@ -1,0 +1,5 @@
+* [151120F]
+** implemented add_ngri_column_0.py
+*** column names are provisional
+** to do
+*** finalize column names

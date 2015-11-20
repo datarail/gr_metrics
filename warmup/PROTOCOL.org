@@ -1,0 +1,25 @@
+* name: warmup
+* start date: Fri Nov 20 12:05:53 EST 2015
+* description
+
+* files
+** input/
+    `-- toy.tsv
+** output/
+*** toy1.tsv
+    generated with
+
+    % src/add_ngri_column_0.py input/toy.tsv > output/toy1.tsv
+
+** NOTES.org
+* software
+** src/add_ngri_column_0.py
+
+    Usage:
+
+    add_ngri_column_0.py input.tsv > output.tsv
+
+    input.tsv must
+
+    - have column headers in the first row
+    - contain numeric columns with headers n_t_c, n_t_0, n_0_0
