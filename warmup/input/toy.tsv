@@ -1,4 +1,4 @@
-cell_line	agent	egf	replicate	t	log10_c	n_t_c	n_t_0	n_0_0
+cell_line	agent	egf	replicate	time	log10_c	cell_count	cell_count__ctrl	cell_count__time0
 MCF10A	17AAG	0	0	72	-1.5	485	500	100
 MCF10A	17AAG	0	0	72	-1	463	500	100
 MCF10A	17AAG	0	0	72	-0.5	414	500	100

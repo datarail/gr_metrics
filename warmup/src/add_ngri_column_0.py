@@ -27,7 +27,8 @@ def main():
     input.tsv must
 
     - have column headers in the first row
-    - contain numeric columns with headers n_t_c, n_t_0, n_0_0
+    - contain numeric columns with headers cell_count, cell_count__ctrl, and
+      cell_count__time0
 
     '''
     reader = csv.reader(fi.input(mode='rb'), delimiter='\t')
@@ -40,10 +41,9 @@ def main():
     print_augmented_row(row=headers, last_col='ngri')
 
     for r in (to_record(*row) for row in reader):
-
-        n_0_0 = float(r.n_0_0)
-        log2nn, log2nn_ctrl = (normalize_log2(float(n), n_0_0)
-                               for n in (r.n_t_c, r.n_t_0))
+        cell_count__time0 = float(r.cell_count__time0)
+        log2nn, log2nn_ctrl = (normalize_log2(float(n), cell_count__time0)
+                               for n in (r.cell_count, r.cell_count__ctrl))
 
         # ngri: normalized growth-rate inhibition
         ngri = '%.6g' % (2**(log2nn/log2nn_ctrl) - 1)
