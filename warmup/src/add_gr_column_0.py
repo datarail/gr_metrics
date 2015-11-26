@@ -22,7 +22,7 @@ def main():
     '''
     Usage:
 
-    add_ngri_column_0.py input.tsv > output.tsv
+    add_gr_column_0.py input.tsv > output.tsv
 
     input.tsv must
 
@@ -38,16 +38,15 @@ def main():
                               field_names=headers,
                               rename=True)
 
-    print_augmented_row(row=headers, last_col='ngri')
+    print_augmented_row(row=headers, last_col='gr')
 
     for r in (to_record(*row) for row in reader):
         cell_count__time0 = float(r.cell_count__time0)
         log2nn, log2nn_ctrl = (normalize_log2(float(n), cell_count__time0)
                                for n in (r.cell_count, r.cell_count__ctrl))
 
-        # ngri: normalized growth-rate inhibition
-        ngri = '%.6g' % (2**(log2nn/log2nn_ctrl) - 1)
+        gr = '%.6g' % (2**(log2nn/log2nn_ctrl) - 1)
 
-        print_augmented_row(row=r, last_col=ngri)
+        print_augmented_row(row=r, last_col=gr)
 
 main()

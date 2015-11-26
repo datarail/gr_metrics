@@ -1,4 +1,4 @@
-cell_line	agent	egf	replicate	time	concentration	cell_count	cell_count__ctrl	cell_count__time0	ngri
+cell_line	agent	egf	replicate	time	concentration	cell_count	cell_count__ctrl	cell_count__time0	gr
 MCF10A	17AAG	0	0	72	0.0316	485	500	100	0.973935
 MCF10A	17AAG	0	0	72	0.100	463	500	100	0.934863
 MCF10A	17AAG	0	0	72	0.316	414	500	100	0.843858
