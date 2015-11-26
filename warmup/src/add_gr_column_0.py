@@ -45,7 +45,8 @@ def main():
         log2nn, log2nn_ctrl = (normalize_log2(float(n), cell_count__time0)
                                for n in (r.cell_count, r.cell_count__ctrl))
 
-        gr = '%.6g' % (2**(log2nn/log2nn_ctrl) - 1)
+        # FIXME: use a more robust approach to significant figures
+        gr = '%s' % float('%.3g' % (2**(log2nn/log2nn_ctrl) - 1))
 
         print_augmented_row(row=r, last_col=gr)
 
