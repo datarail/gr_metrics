@@ -3,3 +3,19 @@
 *** column names are provisional
 ** to do
 *** finalize column names
+* [151124T]
+** fixed column names
+** changed log10c column to concentration
+*** changed numeric format to 3 significant figures
+* [151125W]
+** changed abbreviation ngri to gr throughout
+** changed numeric format of gr column to 3 significant figures
+** updated PROTOCOL
+* [151127F]
+** fixed numeric format of gr column
+   Previous version only approximated a 3-significant figure format
+   using a string formatting template; it worked fine for numbers like
+   0.123 but rendered as, e.g., 0.7 what should have been 0.700; the
+   current version gets that right.
+** eliminated some abbreviations in the code
+   ...for the sake of clarity
