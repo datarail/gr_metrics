@@ -4,6 +4,7 @@ import csv
 import fileinput as fi
 import collections as co
 import math as ma
+import decimal
 
 # ------------------------------------------------------------------------------
 log2 = lambda x: ma.log(x, 2)
@@ -38,16 +39,16 @@ def main():
                               field_names=headers,
                               rename=True)
 
-    print_augmented_row(row=headers, last_col='gr')
+    def adjust_sigfigs(val, _context=decimal.Context(prec=3)):
+        return _context.create_decimal(val)
 
     for r in (to_record(*row) for row in reader):
         cell_count__time0 = float(r.cell_count__time0)
         log2nn, log2nn_ctrl = (normalize_log2(float(n), cell_count__time0)
                                for n in (r.cell_count, r.cell_count__ctrl))
 
-        # FIXME: use a more robust approach to significant figures
-        gr = '%s' % float('%.3g' % (2**(log2nn/log2nn_ctrl) - 1))
+        gr = 2**(log2nn/log2nn_ctrl) - 1
 
-        print_augmented_row(row=r, last_col=gr)
+        print_augmented_row(row=r, last_col=adjust_sigfigs(gr))
 
 main()
