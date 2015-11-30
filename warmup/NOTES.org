@@ -19,3 +19,8 @@
    current version gets that right.
 ** eliminated some abbreviations in the code
    ...for the sake of clarity
+* [151130M]
+** restored line accidentally deleted from add_gr_column_0.py
+** reordered columns of input/toy.tsv
+   primarily so that the `agent` and `concentration` columns are
+   adjacent
