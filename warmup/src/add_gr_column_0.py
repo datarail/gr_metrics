@@ -42,6 +42,8 @@ def main():
     def adjust_sigfigs(val, _context=decimal.Context(prec=3)):
         return _context.create_decimal(val)
 
+    print_augmented_row(row=headers, last_col='gr')
+
     for r in (to_record(*row) for row in reader):
         cell_count__time0 = float(r.cell_count__time0)
         log2nn, log2nn_ctrl = (normalize_log2(float(count), cell_count__time0)
