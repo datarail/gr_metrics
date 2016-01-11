@@ -8,15 +8,15 @@
 *** toy1.tsv
     generated with
 
-    % src/add_gr_column_0.py input/toy.tsv > output/toy1.tsv
+    % src/add_gr_column.py input/toy.tsv > output/toy1.tsv
 
 ** NOTES.org
 * software
-** src/add_ngri_column_0.py
+** src/add_gr_column.py
 
     Usage:
 
-    add_gr_column_0.py input.tsv > output.tsv
+    add_gr_column.py input.tsv > output.tsv
 
     input.tsv must
 

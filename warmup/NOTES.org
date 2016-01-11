@@ -24,3 +24,51 @@
 ** reordered columns of input/toy.tsv
    primarily so that the `agent` and `concentration` columns are
    adjacent
+* [160111M]
+** done
+   - fix .gitnit -> .gitignore
+   - 17AAG -> 17-AAG in ./**/toy*
+   - input/ -> INPUT/, &c
+   - root_pipeline -> STANDARDIZATION
+   - fix add_gr_column_0.py
+     - rename to add_gr_column.py
+     - run main conditionally
+   - update warmup/PROTOCOL.org
+** state
+*** tree
+    % tree -I .git $HOME/_/projects/gr50_browser
+    /home/berriz/_/projects/gr50_browser
+    .
+    |-- .gitignore
+    |-- STANDARDIZATION/
+    |   |-- INPUT/
+    |   |-- OUTPUT/
+    |   |   `-- LOG/
+    |   |-- PROTOCOL.org
+    |   `-- SRC/
+    |       `-- TEST/
+    `-- warmup/
+        |-- INPUT/
+        |   |-- toy.tsv
+        |   `-- toy.txt
+        |-- NOTES.org
+        |-- OUTPUT/
+        |   |-- LOG/
+        |   `-- toy1.tsv
+        |-- PROTOCOL.org
+        `-- SRC/
+            |-- add_gr_column.py*
+            |-- makefake.py
+            `-- TEST/
+                `-- test_format_sig_figs.py
+*** git ls-files
+    .gitignore
+    warmup/INPUT/toy.tsv
+    warmup/NOTES.org
+    warmup/OUTPUT/toy1.tsv
+    warmup/PROTOCOL.org
+    warmup/SRC/TEST/test_format_sig_figs.py
+    warmup/SRC/add_gr_column.py
+
+** todo
+   - update and commit warmup/SRC/TEST
