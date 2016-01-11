@@ -23,7 +23,7 @@ def main():
     '''
     Usage:
 
-    add_gr_column_0.py input.tsv > output.tsv
+    add_gr_column.py input.tsv > output.tsv
 
     input.tsv must
 
