@@ -53,4 +53,5 @@ def main():
 
         print_augmented_row(row=r, last_col=adjust_sigfigs(gr))
 
-main()
+if __name__ == '__main__':
+    main()
