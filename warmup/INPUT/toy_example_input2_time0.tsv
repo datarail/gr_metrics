@@ -1,0 +1,7 @@
+cell_line	perturbation	time0_tag	cell_count
+BT20	0	t0_5	257
+BT20	1	t0_6	241
+MCF10A	0	t0_1	94
+MCF10A	1	t0_2	100
+MCF7	0	t0_3	153
+MCF7	1	t0_4	152
