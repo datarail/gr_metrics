@@ -1,6 +1,7 @@
 addpath('../../SRC/MATLAB/')
 
 t_data = readtable('../../INPUT/toy_example_input1.tsv','filetype','text','delimiter','\t');
+
 t_GRvalues = evaluate_GRvalue(t_data);
 
 %%
@@ -11,7 +12,7 @@ t_GRmetrics = evaluate_GRmetrics(t_GRvalues);
 figure(1);clf
 cell_lines = unique(t_GRvalues.cell_line);
 xc = 10.^(-3.5:.01:1.5);
-drug = 'drugC';
+drug = 'drugA';
 for ip = [0 1]
     for it = [48 72]
         for ir = 1:3
