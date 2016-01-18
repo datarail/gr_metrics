@@ -72,3 +72,20 @@
 
 ** todo
    - update and commit warmup/SRC/TEST
+
+* [180118M] and prior days
+** done
+    - MATLAB implementation
+    - Python scripts to generate examples
+    - tests and examples for the MATLAB scripts
+    - documentation (Word tutorial)
+    
+** state
+    major changes on the structure of the repo for publication
+    
+** to do
+    - convert the tutorial in .md (such that it is self-contained in GitHub)
+    - additional functionality as described in the MATLAB file GRmetrics.m
+    -- priority: testing of the input!
+    - implementation of the sigmoidal fit in Python
+    - long term: plotting functions
