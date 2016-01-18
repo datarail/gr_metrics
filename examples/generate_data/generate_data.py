@@ -132,7 +132,7 @@ df_ctrl = df_ctrl.groupby(['cell_line', 'perturbation', 'replicate', 'time', 'ti
 df_ctrl.to_csv('../../INPUT/toy_example_input2_ctrl.tsv', '\t', float_format='%.4g')
         
 # print out the case 4 example (all in a file)
-df_4 = df_data.loc[df_data.agent != '-', :'cell_count']
+df_4 = df_data.loc[:, :'cell_count']
 df_4.to_csv('../../INPUT/toy_example_input4.tsv', '\t', float_format='%.4g', index=False)
 
 # print out the output (already assigned controls)

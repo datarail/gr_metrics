@@ -11,6 +11,15 @@ output_tag = '../../OUTPUT/MATLAB_results_input3.tsv';
     toy3_input_ctrl, toy3_input_time0);
 
 
+%% example where controls need to be calculated
+toy1_input = '../../INPUT/toy_example_input1.tsv';
+
+% evaluate the GR values for the data
+t_GRvalues_1 = GRmetrics([], toy1_input);
+
+assert(all(t_GRvalues_3.cell_count__ctrl==t_GRvalues_1.cell_count__ctrl))
+assert(all(t_GRvalues_3.cell_count__time0==t_GRvalues_1.cell_count__time0))
+assert(all(t_GRvalues_3.GRvalue==t_GRvalues_1.GRvalue))
 %% reference data
 
 t_GRvalues_ref = sortrows(readtable('../../OUTPUT/toy_example_output.tsv', ...
