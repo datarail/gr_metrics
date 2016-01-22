@@ -10,15 +10,18 @@ Scripts available on repo https://github.com/sorgerlab/gr50_tools
 Browser interface and online tools: (in preparation)
 
 ##General approach
-We have developed scripts to calculate normalized growth rate inhibition (GR) values and corresponding metrics (GR50, GRmax, …) based on cell counts measured in dose-response experiments. Users provide a tab-separated data file in which each row represents a separate treatment condition and the columns specify the keys that define the treatment condition (e.g. cell line, drug or other perturbagen, perturbagen concentration, treatment time, replicate) and the measured cell counts (or surrogate). The experimentally measured cell counts that are required for GR metric calculation are as follows: 
+We have developed scripts to calculate normalized growth rate inhibition (GR) values and corresponding metrics (GR_50, GR_max, ...) based on cell counts measured in dose-response experiments. Users provide a tab-separated data file in which each row represents a separate treatment condition and the columns specify the keys that define the treatment condition (e.g. cell line, drug or other perturbagen, perturbagen concentration, treatment time, replicate) and the measured cell counts (or surrogate). The experimentally measured cell counts that are required for GR metric calculation are as follows: 
 - measured cell counts after perturbagen treatment (*cell_count*, *x(c)*)
 - measured cell counts of control (e.g. untreated or DMSO-treated) wells on the same plate (*control_cell__count*, *x_ctrl*)
 - measured cell counts from an untreated sample grown in parallel until the time of treatment (*time0_cell__count*, *x_0*)
 
-The provided GR scripts compute over the user’s data to calculate GR values individually for each treatment condition (cell line, time, drug, concentration, …) using the formula:
-GR(c)=2^(log_2⁡⁡(x(c)/x_0)/log_2⁡(x_ctrl/x_0) )-1
+The provided GR scripts compute over the user’s data to calculate GR values individually for each treatment condition (cell line, time, drug, concentration, ...) using the formula:
+
+    GR(c) = 2 ^ ( log2(x(c)/x_0) / log2(x_ctrl/x_0) ) - 1
+
 Based on a set of GR values across a range of concentrations, the data are fitted with a sigmoidal curve:
-GR(c) = GR_inf + (1-GR_inf)/(1 + (c/(EC_50))^(h_GR) )
+
+    GR(c) = GR_inf + (1-GR_inf)/(1 + (c/(EC_50))^h_GR )
 
 The following GR metrics are calculated: 
 - **GR_inf** = GR(c->inf), which reflects asymptotic drug efficacy. 
@@ -26,7 +29,7 @@ The following GR metrics are calculated:
 - **EC_50**, the drug concentration at half-maximal effect, which reflects the potency of the drug.
 - **GR_50**, the concentration at which the effect reaches a GR value of 0.5 based on interpolation of the fitted curve.
 - **AUC**, the area under the dose-response curve, which is the integral of *GR(c)* over the range of concentrations tested. 
-- **GRmax**, the effect at the highest tested concentration. Note that *GRmax* can differ from *GRinf* if the dose-response does not reach its plateau value.
+- **GR_max**, the effect at the highest tested concentration. Note that *GR_max* can differ from *GR_inf* if the dose-response does not reach its plateau value.
 
 In addition, the scripts report the r-squared of the fit and evaluate the significance of the sigmoidal fit based on an F-test. If the fit is not significant (p<0.05), the sigmoidal fit is replaced by a constant value (flat fit). Additional information and considerations are described in the supplemental material of the manuscript referred above. 
 
@@ -57,7 +60,10 @@ Case C corresponds to the toy example 4 in the GitHub folder.
 ##Scripts for calculation of GR values and metrics 
 ###MATLAB implementation
 The general MATLAB function is:
-> [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, input_time0)
+
+```matlab
+[t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, input_time0)
+```
 
 Input variables:
 - **output**:		folder or tag for the output files (empty means that no output file will be written)
@@ -77,8 +83,11 @@ The MATLAB sub-functions are processing MATLAB tables as follow:
 - **evaluate_GRmetrics.m**: calculate GR metrics based on GR value.
 
 ###Python 
-The python function to calculate the GR value is:
-> add_gr_column.py input.tsv > output.tsv
+The python script to calculate the GR value is:
+
+```shell
+ add_gr_column.py input.tsv > output.tsv
+```
 
 This covers case A, and the input.tsv file must:
 - have column headers in the first row
