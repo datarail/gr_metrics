@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import gr50
 
 # Read the data file.
-base_path = path.join(path.dirname(path.abspath(__file__)), '..', '..')
+base_path = path.join(path.dirname(path.abspath(__file__)), '..', '..', '..')
 input_path = path.join(base_path, 'OUTPUT', 'toy_example_output.tsv')
 df = pd.read_csv(input_path, delimiter='\t')
 

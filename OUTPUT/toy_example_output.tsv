@@ -1,4 +1,4 @@
-cell_line	agent	perturbation	replicate	time	concentration	cell_count	GRvalue
+cell_line	agent	perturbation	replicate	time	concentration	cell_count	gr
 MCF10A	drugA	0	1	48	0.001	1131	0.932193
 MCF10A	drugA	0	1	48	0.003162	1205	0.993858
 MCF10A	drugA	0	1	48	0.01	1021	0.836636

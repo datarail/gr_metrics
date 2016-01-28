@@ -1,10 +1,94 @@
-import pandas as pd
-import numpy as np
-import scipy.optimize, scipy.stats
+from __future__ import division
+import math
+
+# Computing the full set of metrics requires several "big" packages, but we
+# still want the basic GR computation (which only uses the stdlib) to be
+# available regardless.
+try:
+    import pandas as pd
+    import numpy as np
+    import scipy.optimize, scipy.stats
+    _packages_available = True
+except ImportError:
+    _packages_available = False
 
 
-__all__ = ['gr_metrics', 'logistic']
+__all__ = ['compute_gr', 'compute_gr_single', 'gr_metrics', 'logistic']
 
+
+def _normalize_log2(n, n_0_0):
+    normalized = n / n_0_0
+    return math.log(normalized, 2)
+
+def compute_gr_single(record):
+    """Compute Growth Response value for a single sample.
+
+    The input is a namedtuple or pandas Series with at least the following
+    numeric fields:
+
+    * cell_count: Number of cells detected in this sample.
+    * cell_count__time0: Number of cells in the time=0 control for this sample.
+    * cell_count__ctrl: Number of cells in the no-perturbation control.
+
+    Parameters
+    ----------
+    record : Union[namedtuple, pandas.Series]
+        Input data on which to compute the GR value.
+
+    Returns
+    -------
+    float
+        The computed GR value.
+
+    Example
+    -------
+    >>> from collections import namedtuple
+    >>> Record = namedtuple('Record',
+    ...              ['cell_count', 'cell_count__ctrl', 'cell_count__time0'])
+    >>> rec = Record(cell_count=1710, cell_count__ctrl=1766.0,
+    ...              cell_count__time0=492.8)
+    >>> print compute_gr_single(rec)
+    0.965305500206
+    """
+    cc_t0 = float(record.cell_count__time0)
+    log2nn = _normalize_log2(float(record.cell_count), cc_t0)
+    log2nn_ctrl = _normalize_log2(float(record.cell_count__ctrl), cc_t0)
+    gr = 2 ** (log2nn / log2nn_ctrl) - 1
+    return gr
+
+def compute_gr(data):
+    """Compute Growth Response value for an entire dataset.
+
+    The input dataframe must contain at least the following numeric fields:
+
+    * cell_count: Number of cells detected per sample.
+    * cell_count__time0: Number of cells in the time=0 control for each sample.
+    * cell_count__ctrl: Number of cells in the no-perturbation control.
+
+    The input must not already contain a column named 'gr'.
+
+    A new dataframe will be returned with the GR values stored in a new 'gr'
+    column.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Input data on which to compute the metrics.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Shallow copy of input data with a 'gr' column appended.
+
+    Example
+    -------
+
+    """
+    if 'gr' in data:
+        raise ValueError("Data already contains a 'gr' column; aborting")
+    result = data.copy(deep=False)
+    result['gr'] = data.apply(compute_gr_single, axis=1)
+    return result
 
 def logistic(x, params):
     einf, mid, slope = params
@@ -100,12 +184,13 @@ def _metrics(df, alpha):
     return [gr50, max_, inf, slope, ec50, r2, auc]
 
 def gr_metrics(data, alpha=0.05):
-    """Compute Growth Response metrics.
+    """Compute Growth Response metrics for an entire dataset.
 
     The input dataframe must contain a column named 'concentration' with the
     dose values of the perturbing agent and a column named 'gr' with the
     corresponding growth response (GR) values. Columns named 'cell_count',
-    'cell_count__ctrl' and 'cell_count__time0' are ignored.
+    'cell_count__ctrl' and 'cell_count__time0', which are used by the compute_gr
+    function, will be ignored if they are still present in your dataframe.
 
     Multiple dose-response experiments may be combined into a single dataframe
     by adding extra 'key' columns to distinguish them from each other. Each
@@ -159,6 +244,9 @@ def gr_metrics(data, alpha=0.05):
     0    A  0.114026  0.0188  0.018108  1.145268  0.110412  9.985790e-01  9.115929
     1    B       inf  0.9360  0.971000  0.010000  0.000000 -1.176836e-14  0.105115
     """
+    if not _packages_available:
+        raise RuntimeError("Please install numpy, scipy and pandas in order "
+                           "to use this function")
     non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
                     'cell_count__time0', 'gr'))
     metric_columns = ['gr50', 'gr_max', 'gr_inf', 'slope', 'ec50', 'r2',

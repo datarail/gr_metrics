@@ -7,4 +7,5 @@ setup(name='gr50',
       author_email='jmuhlich@bitflood.org',
       url='https://github.com/sorgerlab/gr50_tools/',
       packages=['gr50'],
+      scripts=['scripts/add_gr_column.py', 'scripts/compute_gr_metrics.py'],
       )
