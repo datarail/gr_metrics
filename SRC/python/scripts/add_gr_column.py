@@ -11,9 +11,6 @@ import gr50
 def print_augmented_row(row, last_col):
     print '%s\t%s' % ('\t'.join(row), last_col)
 
-def adjust_sigfigs(val, _context=decimal.Context(prec=3)):
-    return _context.create_decimal(val)
-
 # ------------------------------------------------------------------------------
 
 def main():
@@ -51,7 +48,7 @@ def main():
                                     rename=True)
     for r in (record(*row) for row in reader):
         gr = gr50.compute_gr_single(r)
-        print_augmented_row(row=r, last_col=adjust_sigfigs(gr))
+        print_augmented_row(row=r, last_col=gr)
 
 if __name__ == '__main__':
     main()
