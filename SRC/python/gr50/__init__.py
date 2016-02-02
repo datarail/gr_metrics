@@ -91,13 +91,31 @@ def compute_gr(data):
     return result
 
 def logistic(x, params):
-    einf, mid, slope = params
+    """Evaluate logistic curve equation using log-transformed x_0.
+
+    Parameters
+    ----------
+    x
+        X-value at which to evaluate the logistic function.
+    params : list
+        * einf: maximum Y-value (effect)
+        * log10_mid: log10-transformed X-value of midpoint
+        * slope: Steepness of curve
+
+    Returns
+    -------
+    float
+        Y-value of logistic function.
+    """
+    einf, log10_mid, slope = params
     emin = 1.0
+    mid = 10 ** log10_mid
     return ( (emin-einf) / (1 + ((x/mid)**slope) ) ) + einf
 
 def _logistic_inv(y, params):
-    einf, mid, slope = params
+    einf, log10_mid, slope = params
     emin = 1.0
+    mid = 10 ** log10_mid
     if y >= min(emin, einf) and y <= max(emin, einf):
         return mid * ( (y-emin) / (einf-y) ) ** (1/slope)
     else:
@@ -155,7 +173,7 @@ def _mklist(values):
 def _metrics(df, alpha):
     conc_min = df.concentration.min()
     conc_max = df.concentration.max()
-    bounds = np.array([[-1, 1], [conc_min/10, conc_max*10], [0.1, 5]])
+    bounds = np.array([[-1, 1], np.log10([conc_min/10, conc_max*10]), [0.1, 5]])
     logistic_result = _fit(logistic, df.concentration, df.gr, bounds)
     flat_result = _fit(_flat, df.concentration, df.gr, bounds[[0]])
     pval = _calculate_pval(logistic_result, flat_result, len(df.concentration))
@@ -174,7 +192,7 @@ def _metrics(df, alpha):
     else:
         gr50 = _logistic_inv(0.5, logistic_result.x)
         inf = logistic_result.x[0]
-        ec50 = logistic_result.x[1]
+        ec50 = 10 ** logistic_result.x[1]
         slope = logistic_result.x[2]
         r2 = _rsquare(logistic_result.x, logistic, df.concentration, df.gr)
     # Take the minimum across the highest 2 doses to minimize the effect of
@@ -240,9 +258,9 @@ def gr_metrics(data, alpha=0.05):
     ...             ['B', 1.0, 1.04], ['B', 10.0, 0.936]],
     ...            columns=['drug', 'concentration', 'gr'])
     >>> print gr_metrics(data)
-      drug      gr50  gr_max    gr_inf     slope      ec50            r2    gr_auc
-    0    A  0.114026  0.0188  0.018108  1.145268  0.110412  9.985790e-01  9.115929
-    1    B       inf  0.9360  0.971000  0.010000  0.000000 -1.176836e-14  0.105115
+      drug      gr50  gr_max    gr_inf    slope      ec50            r2    gr_auc
+    0    A  0.114027  0.0188  0.018109  1.14526  0.110413  9.985790e-01  9.115929
+    1    B       inf  0.9360  0.971000  0.01000  0.000000 -1.176836e-14  0.105115
     """
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
