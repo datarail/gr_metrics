@@ -199,7 +199,7 @@ def _metrics(df, alpha):
     # outliers (robust minimum).
     max_ = min(df.gr[-2:])
     auc = np.trapz(1 - df.gr, df.concentration)
-    return [gr50, max_, auc, ec50, inf, slope, r2]
+    return [gr50, max_, auc, ec50, inf, slope, r2, pval]
 
 def gr_metrics(data, alpha=0.05):
     """Compute Growth Response metrics for an entire dataset.
@@ -258,16 +258,21 @@ def gr_metrics(data, alpha=0.05):
     ...             ['B', 1.0, 1.04], ['B', 10.0, 0.936]],
     ...            columns=['drug', 'concentration', 'gr'])
     >>> print gr_metrics(data)
-      drug      GR50   GRmax    GR_AUC      EC50     GRinf     Hill            r2
-    0    A  0.114027  0.0188  9.115929  0.110413  0.018109  1.14526  9.985790e-01
-    1    B       inf  0.9360  0.105115  0.000000  0.971000  0.01000 -1.176836e-14
+      drug      GR50   GRmax    GR_AUC      EC50     GRinf     Hill            r2  \\
+    0    A  0.114027  0.0188  9.115929  0.110413  0.018109  1.14526  9.985790e-01   
+    1    B       inf  0.9360  0.105115  0.000000  0.971000  0.01000 -1.176836e-14   
+    <BLANKLINE>
+           pval  
+    0  0.000054  
+    1  1.000000  
     """
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
                            "to use this function")
     non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
                     'cell_count__time0', 'gr'))
-    metric_columns = ['GR50', 'GRmax', 'GR_AUC', 'EC50', 'GRinf', 'Hill', 'r2']
+    metric_columns = ['GR50', 'GRmax', 'GR_AUC', 'EC50', 'GRinf', 'Hill', 'r2',
+                      'pval']
     keys = list(set(data.columns) - non_keys)
     gb = data.groupby(keys)
     data = [_mklist(k) + _metrics(v, alpha) for k, v in gb]
