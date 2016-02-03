@@ -1,5 +1,14 @@
 function t_out = evaluate_GRmetrics(t_in)
+% t_out = evaluate_GRmetrics(t_in)
+%   evalute the GR metrics (GR50, GRinf, ...) on a table with columns: 
+%   GRvalue and concentration. All columns except 'cell_count*' will be
+%   considered to be keys.
 
+% --> change to a real error handling MH 16/1/21
+assert(all(ismember({'GRvalue', 'concentration' }, ...
+    t_data.Properties.VariableNames)), 
+    'Need the columns ''GRvalue'', ''concentration'' in the data') 
+    
 keys = setdiff(t_in.Properties.VariableNames, {'concentration', ...
     'cell_count' 'cell_count__ctrl' 'cell_count__time0' 'GRvalue'}, 'stable');
 MetricsNames = {'GR50' 'GRmax' 'GR_AUC' 'EC50' 'GRinf' 'Hill' 'r2' 'pval'};
@@ -36,6 +45,8 @@ end
 fprintf('\n');
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --> write the subfunctions in separate files MH 16/1/21
 
 function idx = table_equality(t1, t_all, keys)
 % find the indices in table t_all where keys equal row t1
@@ -43,7 +54,7 @@ idx = all( cell2mat(cellfun(@(x) t1.(x) == t_all.(x), keys, ...
     'uniformoutput', false)), 2);
 end
 
-
+% --> write the subfunctions in separate files MH 16/1/21
 function GRmetrics = fit_dose_response(t_in)
 % fit a sigmoidal function to the data and output the results as a struct
 %   test the significance against a flat fit (cutoff is 0.05)
@@ -147,6 +158,7 @@ else % significant sigmoidal fit
 end
 end
 
+% --> write the subfunctions in separate files MH 16/1/21
 function [fit_result, gof] = sigmoidal_fit(c, g, ranges, priors)
 % sigmoidal fit function
 fitopt = fitoptions('Method','NonlinearLeastSquares',...

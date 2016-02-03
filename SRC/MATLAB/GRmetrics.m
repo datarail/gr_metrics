@@ -49,7 +49,7 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, i
 %
 %
 
-% further improvements to implement (MH 1/18/15): 
+% further improvements to implement (MH 15/1/18): 
 %   - optional cutoff for the p-value
 %   - averaging the replicates (based on a provided key)
 %   - check on the input data and output descriptive error messages:
@@ -63,8 +63,10 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, i
 %% load the data
 t_data = readtable(input_data,'filetype','text','delimiter','\t');
 
+% --> change to a real error handling MH 16/1/21
 assert(all(ismember({'cell_count', 'concentration'}, t_data.Properties.VariableNames)), ...
-    'Need the columns ''cell_count'', ''concentration'' in the data')
+    'Need the columns ''cell_count'', ''concentration'' in the data') 
+    
 if any(~ismember({'cell_count__ctrl' 'cell_count__time0'}, t_data.Properties.VariableNames))
     % need to assign the controls to each condition
     
@@ -112,6 +114,7 @@ end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --> write the subfunctions in separate files MH 16/1/21
 function t_data = assign_controls(t_all)
 % split the data in measured values and controls based on keys
 %   and assign the proper tags placing the controls right
@@ -138,29 +141,32 @@ for i = 1:length(keys)
 end
 
 % compute the trimmed mean for time0 data
-t_time0 = grpstats(t_time0(:,[keys(time0_keys) 'cell_count']), ...
+t_time0_mean = grpstats(t_time0(:,[keys(time0_keys) 'cell_count']), ...
     keys(time0_keys),@(x)trimmean(x,50));
 % clean the table
-t_time0.GroupCount = [];
-t_time0.Properties.VariableNames{'Fun1_cell_count'} = 'cell_count__time0';
+t_time0_mean.GroupCount = [];
+t_time0_mean.Properties.VariableNames{'Fun1_cell_count'} = 'cell_count__time0';
 
 % compute the trimmed mean for untreated data
-t_ctrl = grpstats(t_ctrl(:,[keys(ctrl_keys) 'cell_count']), ...
+t_ctrl_mean = grpstats(t_ctrl(:,[keys(ctrl_keys) 'cell_count']), ...
     keys(ctrl_keys),@(x)trimmean(x,50));
 % clean the table
-t_ctrl.GroupCount = [];
-t_ctrl.Properties.VariableNames{'Fun1_cell_count'} = 'cell_count__ctrl';
+t_ctrl_mean.GroupCount = [];
+t_ctrl_mean.Properties.VariableNames{'Fun1_cell_count'} = 'cell_count__ctrl';
 
 % join all the tables
-t_data = outerjoin(t_data, t_time0, 'type', 'left', ...
+% --- > need to check for proper join (no empty rows)  MH 16/1/21
+t_data = outerjoin(t_data, t_time0_mean, 'type', 'left', ...
     'MergeKeys', true, 'keys', keys(time0_keys));
-t_data = outerjoin(t_data, t_ctrl, 'type', 'left', ...
+t_data = outerjoin(t_data, t_ctrl_mean, 'type', 'left', ...
     'MergeKeys', true, 'keys', keys(ctrl_keys));
 
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --> write the subfunctions in separate files MH 16/1/21
+
 function t_data = add_controls(t_data, t_ctrl, t_time0)
 % join the tables of controls with the table of data
 
