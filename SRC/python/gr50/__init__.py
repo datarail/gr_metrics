@@ -65,10 +65,10 @@ def compute_gr(data):
     * cell_count__time0: Number of cells in the time=0 control for each sample.
     * cell_count__ctrl: Number of cells in the no-perturbation control.
 
-    The input must not already contain a column named 'gr'.
+    The input must not already contain a column named 'GRvalue'.
 
-    A new dataframe will be returned with the GR values stored in a new 'gr'
-    column.
+    A new dataframe will be returned with the GR values stored in a new
+    'GRvalue' column.
 
     Parameters
     ----------
@@ -78,16 +78,16 @@ def compute_gr(data):
     Returns
     -------
     pandas.DataFrame
-        Shallow copy of input data with a 'gr' column appended.
+        Shallow copy of input data with a 'GRvalue' column appended.
 
     Example
     -------
 
     """
-    if 'gr' in data:
-        raise ValueError("Data already contains a 'gr' column; aborting")
+    if 'GRvalue' in data:
+        raise ValueError("Data already contains a 'GRvalue' column; aborting")
     result = data.copy(deep=False)
-    result['gr'] = data.apply(compute_gr_single, axis=1)
+    result['GRvalue'] = data.apply(compute_gr_single, axis=1)
     return result
 
 def logistic(x, params):
@@ -175,8 +175,10 @@ def _metrics(df, alpha):
     conc_max = df.concentration.max() * 100
     bounds = np.array([[-1, 1], np.log10([conc_min, conc_max]), [0.1, 5]])
     prior = np.array([0.1, np.log10(np.median(df.concentration)), 2])
-    logistic_result = _fit(logistic, df.concentration, df.gr, prior, bounds)
-    flat_result = _fit(_flat, df.concentration, df.gr, prior[[0]], bounds[[0]])
+    logistic_result = _fit(logistic, df.concentration, df.GRvalue,
+                           prior, bounds)
+    flat_result = _fit(_flat, df.concentration, df.GRvalue,
+                       prior[[0]], bounds[[0]])
     pval = _calculate_pval(logistic_result, flat_result, len(df.concentration))
     if pval > alpha or not logistic_result.success:
         # Return values for the metrics such that the logistic function will
@@ -189,27 +191,27 @@ def _metrics(df, alpha):
         ec50 = 0.0
         # Must be non-zero or the logistic function will error.
         slope = 0.01
-        r2 = _rsquare(flat_result.x, _flat, df.concentration, df.gr)
+        r2 = _rsquare(flat_result.x, _flat, df.concentration, df.GRvalue)
     else:
         gr50 = _logistic_inv(0.5, logistic_result.x)
         inf = logistic_result.x[0]
         ec50 = 10 ** logistic_result.x[1]
         slope = logistic_result.x[2]
-        r2 = _rsquare(logistic_result.x, logistic, df.concentration, df.gr)
+        r2 = _rsquare(logistic_result.x, logistic, df.concentration, df.GRvalue)
     # Take the minimum across the highest 2 doses to minimize the effect of
     # outliers (robust minimum).
-    max_ = min(df.gr[-2:])
+    max_ = min(df.GRvalue[-2:])
     log_conc = np.log10(df.concentration)
     # Normalize AUC by concentration range (width of curve).
     auc_width = log_conc.max() - log_conc.min()
-    auc = np.trapz(1 - df.gr, log_conc) / auc_width
+    auc = np.trapz(1 - df.GRvalue, log_conc) / auc_width
     return [gr50, max_, auc, ec50, inf, slope, r2, pval]
 
 def gr_metrics(data, alpha=0.05):
     """Compute Growth Response metrics for an entire dataset.
 
     The input dataframe must contain a column named 'concentration' with the
-    dose values of the perturbing agent and a column named 'gr' with the
+    dose values of the perturbing agent and a column named 'GRvalue' with the
     corresponding growth response (GR) values. Columns named 'cell_count',
     'cell_count__ctrl' and 'cell_count__time0', which are used by the compute_gr
     function, will be ignored if they are still present in your dataframe.
@@ -263,21 +265,21 @@ def gr_metrics(data, alpha=0.05):
     ...             ['A', 1.0, 0.0976], ['A', 10.0, 0.0188],
     ...             ['B', 0.001, 0.985], ['B', 0.01, 0.916], ['B', 0.1, 0.978],
     ...             ['B', 1.0, 1.04], ['B', 10.0, 0.936]],
-    ...            columns=['drug', 'concentration', 'gr'])
+    ...            columns=['drug', 'concentration', 'GRvalue'])
     >>> print gr_metrics(data)
-      drug      GR50   GRmax    GR_AUC      EC50     GRinf     Hill            r2  \\
-    0    A  0.114027  0.0188  9.115929  0.110413  0.018109  1.14526  9.985790e-01   
-    1    B       inf  0.9360  0.105115  0.000000  0.971000  0.01000 -1.176836e-14   
+      drug      GR50   GRmax    GR_AUC      EC50     GRinf      Hill  \\
+    0    A  0.114025  0.0188  0.481125  0.110411  0.018109  1.145262   
+    1    B       inf  0.9360  0.026375  0.000000  0.971000  0.010000   
     <BLANKLINE>
-           pval  
-    0  0.000054  
-    1  1.000000  
+                 r2      pval  
+    0  9.985790e-01  0.000054  
+    1 -1.243450e-14  1.000000  
     """
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
                            "to use this function")
     non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
-                    'cell_count__time0', 'gr'))
+                    'cell_count__time0', 'GRvalue'))
     metric_columns = ['GR50', 'GRmax', 'GR_AUC', 'EC50', 'GRinf', 'Hill', 'r2',
                       'pval']
     keys = list(set(data.columns) - non_keys)

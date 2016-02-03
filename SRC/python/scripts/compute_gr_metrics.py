@@ -16,7 +16,7 @@ def main():
 
     - The first row contains column names.
     - The 'concentration' column contains the numeric dose of a perturbagen.
-    - The 'gr' column contains the GR value for that condition.
+    - The 'GRvalue' column contains the GR value for that condition.
 
     The input file may also have other "key" columns to distinguish multiple
     separate dose-response experiments within the same file.

@@ -31,8 +31,8 @@ def main():
 
     All other columns are ignored and passed through untouched.
 
-    The output tsv will have all columns from the input, as well as a new 'gr'
-    column at the end containing the GR values.
+    The output tsv will have all columns from the input, as well as a new
+    'GRvalue' column at the end containing the GR values.
     '''
 
     if '-h' in sys.argv or '--help' in sys.argv:
@@ -41,7 +41,7 @@ def main():
 
     reader = csv.reader(fileinput.input(mode='rb'), delimiter='\t')
     headers = next(reader)
-    print_augmented_row(row=headers, last_col='gr')
+    print_augmented_row(row=headers, last_col='GRvalue')
 
     record = collections.namedtuple(typename='record',
                                     field_names=headers,
