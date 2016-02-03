@@ -175,7 +175,7 @@ function [fit_result, gof] = flat_fit(c, g, ranges, priors)
 % flat fit function (special case of sigmoidal fit)
 fitopt = fitoptions('Method','NonlinearLeastSquares',...
     'Lower',ranges(1,1),...   % min Emax
-    'Upper',1.2,...   % max E0
+    'Upper',ranges(2,1),...   % max Emax
     'Startpoint',priors(1));
 f = fittype('a+0*x','options',fitopt);
 [fit_result, gof] = fit(c, g,f);
