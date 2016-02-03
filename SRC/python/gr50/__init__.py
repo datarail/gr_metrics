@@ -143,9 +143,9 @@ def _rsquare(params, fn, xdata, ydata):
     ss_tot = _tss(ydata)
     return 1 - ss_res / ss_tot
 
-def _fit(fn, xdata, ydata, bounds):
-    res = scipy.optimize.minimize(_rss, x0=np.mean(bounds, 1),
-                                  args=(fn, xdata, ydata), bounds=bounds)
+def _fit(fn, xdata, ydata, prior, bounds):
+    res = scipy.optimize.minimize(_rss, args=(fn, xdata, ydata),
+                                  x0=prior, bounds=bounds)
     return res
 
 def _calculate_pval(logistic_result, flat_result, n):
@@ -171,11 +171,12 @@ def _mklist(values):
         return [values]
 
 def _metrics(df, alpha):
-    conc_min = df.concentration.min()
-    conc_max = df.concentration.max()
-    bounds = np.array([[-1, 1], np.log10([conc_min/10, conc_max*10]), [0.1, 5]])
-    logistic_result = _fit(logistic, df.concentration, df.gr, bounds)
-    flat_result = _fit(_flat, df.concentration, df.gr, bounds[[0]])
+    conc_min = df.concentration.min() / 100
+    conc_max = df.concentration.max() * 100
+    bounds = np.array([[-1, 1], np.log10([conc_min, conc_max]), [0.1, 5]])
+    prior = np.array([0.1, np.log10(np.median(df.concentration)), 2])
+    logistic_result = _fit(logistic, df.concentration, df.gr, prior, bounds)
+    flat_result = _fit(_flat, df.concentration, df.gr, prior[[0]], bounds[[0]])
     pval = _calculate_pval(logistic_result, flat_result, len(df.concentration))
     if pval > alpha or not logistic_result.success:
         # Return values for the metrics such that the logistic function will
@@ -198,7 +199,10 @@ def _metrics(df, alpha):
     # Take the minimum across the highest 2 doses to minimize the effect of
     # outliers (robust minimum).
     max_ = min(df.gr[-2:])
-    auc = np.trapz(1 - df.gr, df.concentration)
+    log_conc = np.log10(df.concentration)
+    # Normalize AUC by concentration range (width of curve).
+    auc_width = log_conc.max() - log_conc.min()
+    auc = np.trapz(1 - df.gr, log_conc) / auc_width
     return [gr50, max_, auc, ec50, inf, slope, r2, pval]
 
 def gr_metrics(data, alpha=0.05):
@@ -218,15 +222,18 @@ def gr_metrics(data, alpha=0.05):
 
     The computed metrics are:
 
-    * gr50: Dose at which GR reaches 0.5.
-    * gr_max: Maximum observed GR effect (minimum value).
-    * gr_inf: Extrapolated GR value at infinite dose.
-    * slope: Hill slope of fitted logistic curve.
-    * ec50: Dose at which GR is halfway between 1 and gr_inf.
+    * GR50: Dose at which GR reaches 0.5.
+    * GRmax: Maximum observed GR effect (minimum value).
+    * GR_AUC: Area under the curve of observed data points. Mathematically this
+      is calculated as 1-AUC so that increasing gr_auc values correspond to
+      increasing agent effect. Also note the x-axis (concentration) values are
+      log10-transformed, and the entire area is normalized by the width
+      (difference between maximum and minimum concentration).
+    * EC50: Dose at which GR is halfway between 1 and gr_inf.
+    * GRinf: Extrapolated GR value at infinite dose.
+    * Hill: Hill slope of fitted logistic curve.
     * r2: R squared of fitted logistic curve.
-    * gr_auc: Area under the curve of observed data points. (Mathematically
-      this is calculated as 1-AUC so that increasing gr_auc values correspond
-      to increasing agent effect)
+    * pval: P-value from the F-test (see below).
 
     The input data for each experiment are fitted with a logistic curve. An
     F-test is then performed with the null hypothesis being that there is no

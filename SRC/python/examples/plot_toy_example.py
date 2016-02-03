@@ -35,12 +35,12 @@ for cell_line, row_axes in zip(grid.row_names, grid.axes):
     for agent, ax in zip(grid.col_names, row_axes):
         for m in gr_metrics[(gr_metrics.agent == agent) &
                             (gr_metrics.cell_line == cell_line)].itertuples():
-            fit_y = gr50.logistic(fit_x, [m.gr_inf, np.log10(m.ec50), m.slope])
+            fit_y = gr50.logistic(fit_x, [m.GRinf, np.log10(m.EC50), m.Hill])
             ax.hlines(0.5, x_min, x_max, '#a0a0a0', linestyles='dotted', lw=0.5)
-            ax.hlines(m.gr_inf, x_min, x_max, '#ff00ff', linestyles='dashed',
+            ax.hlines(m.GRinf, x_min, x_max, '#ff00ff', linestyles='dashed',
                       lw=0.5)
-            ax.vlines(m.ec50, -1, 1, 'b', linestyles='dashed', lw=0.5)
-            ax.vlines(m.gr50, -1, 1, 'g', linestyles='dashed', lw=0.5)
+            ax.vlines(m.EC50, -1, 1, 'b', linestyles='dashed', lw=0.5)
+            ax.vlines(m.GR50, -1, 1, 'g', linestyles='dashed', lw=0.5)
             ax.plot(fit_x, fit_y, 'r', lw=0.5)
 grid.set(ylim=(-1, 1.1))
 grid.fig.tight_layout(w_pad=1)
