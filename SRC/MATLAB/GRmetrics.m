@@ -1,5 +1,5 @@
-function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, input_time0)
-% [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, input_time0)
+function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, varargin)
+% [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, [input_ctrl, input_time0], [varargin])
 %
 % input variables:
 %   - output:       folder and tag for the output files (empty means no
@@ -7,6 +7,11 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, i
 %   - input_data:   file name for the data on which to compute GR values
 %   - input_ctrl:   file name for the control data (optional, see below)
 %   - input_time0:  file name for the time0 data (optional, see below)
+%
+% optional input parameters (pairwise):
+%   - 'pcutoff':    cutoff value for the flat fit using the F-test (default
+%                       is pcutoff=0.05)
+%   - 'collapseKeys':   column header (key) to average the data on (default is none)
 %
 % input files:
 %   the files are tab-separated (.tsv) files with the following columns:
@@ -49,7 +54,7 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, i
 %
 %
 
-% further improvements to implement (MH 15/1/18): 
+% further improvements to implement (MH 1/18/16):
 %   - optional cutoff for the p-value
 %   - averaging the replicates (based on a provided key)
 %   - check on the input data and output descriptive error messages:
@@ -59,7 +64,32 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, input_ctrl, i
 %   - assess quality of the data
 %       - variablity of the controls
 %
+% code improvements to implement (MH 2/25/16):
+%   - proper handling of errors and tests (remove assert functions)
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% assign the optional parameters
+assert(mod(nargin,2)==0, 'Expecting a even number of arguments - see help')
+
+caseB = false;
+if length(varargin)>=2
+    % handle the case B (overloading of input arguments)
+    if exist(varargin{1}, 'file')==2 && exist(varargin{2}, 'file')==2
+        input_ctrl = varargin{1};
+        input_time0 = varargin{2};
+        varargin = varargin(3:end);
+        caseB = true;
+    end
+end
+
+% get the parameters from the input arguments
+p = inputParser;
+addParameter(p,'pcutoff', .05, @isnumeric);
+addParameter(p,'collapseKeys', '', @(x) ischar(x) || iscellstr(x));
+parse(p,varargin{:});
+p = p.Results;
+
 %% load the data
 t_data = readtable(input_data,'filetype','text','delimiter','\t');
 
@@ -70,7 +100,7 @@ assert(all(ismember({'cell_count', 'concentration'}, t_data.Properties.VariableN
 if any(~ismember({'cell_count__ctrl' 'cell_count__time0'}, t_data.Properties.VariableNames))
     % need to assign the controls to each condition
     
-    if nargin>2
+    if caseB
         % case of multiple input files
         
         % endpoint controls
@@ -82,11 +112,16 @@ if any(~ismember({'cell_count__ctrl' 'cell_count__time0'}, t_data.Properties.Var
         t_data = add_controls(t_data, t_ctrl, t_time0);
         
     else
-        % case of one long with with the controls: 
+        % case of one long with with the controls:
         %   compute the controls and assign them to the measured data
         t_data = assign_controls(t_data);
     end
     
+end
+
+%% collapse the data (if neeeded)
+if ~isempty(p.collapseKeys)
+    t_data = collapsed_data(t_data, p.collapseKeys);
 end
 
 %% evaluate the GR value for the data
@@ -94,15 +129,15 @@ t_GRvalues = evaluate_GRvalue(t_data);
 t_GRvalues = sortrows(t_GRvalues); % for consistent output
 
 %% calculate the GR metrics
-if ~isempty(output) || nargout>1    
+if ~isempty(output) || nargout>1
     % skipped if not needed for output
-    t_GRmetrics = evaluate_GRmetrics(t_GRvalues);
+    t_GRmetrics = evaluate_GRmetrics(t_GRvalues, p.pcutoff);
     t_GRmetrics = sortrows(t_GRmetrics); % for consistent output
 end
 %% write the output files
 if ~isempty(output)
     writetable(t_GRvalues, [output '_GRvalues.tsv'], ...
-        'filetype','text' , 'delimiter', '\t');    
+        'filetype','text' , 'delimiter', '\t');
     writetable(t_GRmetrics, [output '_GRmetrics.tsv'], ...
         'filetype','text' , 'delimiter', '\t');
 end
@@ -112,6 +147,7 @@ if nargout==0
 end
 
 end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % --> write the subfunctions in separate files MH 16/1/21
@@ -191,4 +227,28 @@ t_data = outerjoin(t_data, t_time0, 'type', 'left', ...
 % clean the flags
 t_data.ctrl_tag = [];
 t_data.time0_tag = [];
+end
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function t_data_collapsed = collapsed_data(t_data, collapseKeys)
+% average the results (cell count) by removing one key
+if ischar(collapseKeys), collapseKeys = {collapseKeys}; end
+assert(all(ismember(collapseKeys, t_data.Properties.VariableNames)))
+
+cell_count_columns = {'cell_count' 'cell_count__ctrl' 'cell_count__time0'};
+
+[t_data_collapsed, ~, idx] = unique(t_data(:,setdiff(t_data.Properties.VariableNames, ...
+    [collapseKeys cell_count_columns], 'stable')), 'stable');
+
+t_data_collapsed = [t_data_collapsed array2table(NaN(height(t_data_collapsed),3), ...
+    'variableNames', cell_count_columns)];
+for i=1:height(t_data_collapsed)
+    for j=1:length(cell_count_columns)
+        t_data_collapsed.(cell_count_columns{j})(i) = ...
+            mean(t_data.(cell_count_columns{j})(idx==i));
+    end
+end
+
 end
