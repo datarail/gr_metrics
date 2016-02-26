@@ -32,8 +32,14 @@ assert(all(abs(t_join.GRvalue_left-t_join.GRvalue_right)<1e-5))
 
 %% check the fit parameters are reasonnably close
 %   because of added noise, they will not match exaclty
-t_means = grpstats(t_GRmetrics_4(:,[1:2 7 9:11]), 1:2, @mean);
-t_join = join(t_means,t_GRmetrics_ref, 'keys', 1:2);
+temp_4 = t_GRmetrics_4;
+temp_4.EC50 = log10(temp_4.EC50);
+t_means = grpstats(temp_4(:,[1:2 7 9:11]), 1:2, @mean);
+temp_ref = t_GRmetrics_ref;
+temp_ref.EC50 = log10(temp_ref.EC50);
+t_join = join(t_means,temp_ref, 'keys', 1:2);
+t_join.EC50(t_join.cell_line=='BT20' & t_join.agent=='drugB') = -Inf;
+t_join.Hill(t_join.cell_line=='BT20' & t_join.agent=='drugB') = .01;
 for i=3:width(t_GRmetrics_ref)
     disp([t_GRmetrics_ref.Properties.VariableNames(i) ' '
         {'------------' ' '}

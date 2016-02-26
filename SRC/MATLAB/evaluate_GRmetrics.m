@@ -2,11 +2,12 @@ function t_out = evaluate_GRmetrics(t_in, pcutoff)
 % t_out = evaluate_GRmetrics(t_in, pcutoff)
 %   evalute the GR metrics (GR50, GRinf, ...) on a table with columns: 
 %   GRvalue and concentration. All columns except 'cell_count*' will be
-%   considered to be keys. pcutoff for the F-test of the sigmoidal fit 
+%   considered to be keys. 
+%   pcutoff is used for the F-test of the sigmoidal fit 
 
 % --> change to a real error handling MH 16/1/21
 assert(all(ismember({'GRvalue', 'concentration' }, ...
-    t_data.Properties.VariableNames)), ... 
+    t_in.Properties.VariableNames)), ... 
     'Need the columns ''GRvalue'', ''concentration'' in the data') 
     
 keys = setdiff(t_in.Properties.VariableNames, {'concentration', ...

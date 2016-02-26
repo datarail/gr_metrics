@@ -8,10 +8,11 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, varargin)
 %   - input_ctrl:   file name for the control data (optional, see below)
 %   - input_time0:  file name for the time0 data (optional, see below)
 %
-% optional input parameters (pairwise):
-%   - 'pcutoff':    cutoff value for the flat fit using the F-test (default
-%                       is pcutoff=0.05)
-%   - 'collapseKeys':   column header (key) to average the data on (default is none)
+% optional input parameters (property/value pairs):
+%   - 'pcutoff':    cutoff value for the flat fit using the F-test 
+%                       (default is pcutoff=0.05)
+%   - 'collapseKeys': column header (key) to average the data on 
+%                       (default is none)
 %
 % input files:
 %   the files are tab-separated (.tsv) files with the following columns:
@@ -55,8 +56,6 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, varargin)
 %
 
 % further improvements to implement (MH 1/18/16):
-%   - optional cutoff for the p-value
-%   - averaging the replicates (based on a provided key)
 %   - check on the input data and output descriptive error messages:
 %       - cases B/C: all treated measures have corresponding controls
 %       - case C: input for time 0 have concentration=0
