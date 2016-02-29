@@ -1,12 +1,13 @@
-function t_out = evaluate_GRmetrics(t_in)
-% t_out = evaluate_GRmetrics(t_in)
+function t_out = evaluate_GRmetrics(t_in, pcutoff)
+% t_out = evaluate_GRmetrics(t_in, pcutoff)
 %   evalute the GR metrics (GR50, GRinf, ...) on a table with columns: 
 %   GRvalue and concentration. All columns except 'cell_count*' will be
-%   considered to be keys.
+%   considered to be keys. 
+%   pcutoff is used for the F-test of the sigmoidal fit 
 
 % --> change to a real error handling MH 16/1/21
 assert(all(ismember({'GRvalue', 'concentration' }, ...
-    t_data.Properties.VariableNames)), ...
+    t_in.Properties.VariableNames)), ... 
     'Need the columns ''GRvalue'', ''concentration'' in the data') 
     
 keys = setdiff(t_in.Properties.VariableNames, {'concentration', ...
@@ -37,7 +38,7 @@ for i=1:height(t_out)
         warning('less than 4 concentrations for some conditions --> no fit')
         warn_flag = false;
     end
-    GRmetrics = fit_dose_response(t_in(idx,:));
+    GRmetrics = fit_dose_response(t_in(idx,:), pcutoff);
     
     for iM = MetricsNames, t_out.(iM{:})(i) = GRmetrics.(iM{:}); end
 end
@@ -55,14 +56,13 @@ idx = all( cell2mat(cellfun(@(x) t1.(x) == t_all.(x), keys, ...
 end
 
 % --> write the subfunctions in separate files MH 16/1/21
-function GRmetrics = fit_dose_response(t_in)
+function GRmetrics = fit_dose_response(t_in, pcutoff)
 % fit a sigmoidal function to the data and output the results as a struct
-%   test the significance against a flat fit (cutoff is 0.05)
+%   test the significance against a flat fit (pcutoff as cutoff)
 t_ = sortrows(t_in(:,{'concentration' 'GRvalue'}), 1, 'ascend');
 c = t_.concentration;
 g = t_.GRvalue;
 
-pcutoff = 0.05; % for the F-test of the sigmoidal fit
 
 if height(t_)<2
     error('Need at least two different concentrations per condition')
