@@ -3,11 +3,11 @@ Companion of the manuscript:
 **Metrics of drug sensitivity and resistance based on growth rate inhibition correct for the confounding effects of variable division rates**
 
 ####References:
-Hafner, M., Niepel, M. Chung, M. and Sorger, P.K., *Metrics of drug sensitivity and resistance based on growth rate inhibition correct for the confounding effects of variable division rates*, in revision, doi:
+Hafner, M., Niepel, M. Chung, M. and Sorger, P.K., *Metrics of drug sensitivity and resistance based on growth rate inhibition correct for the confounding effects of variable division rates*, (2016) Nature Methods, doi:10.1038/nmeth.3853
 
 Scripts available on repo https://github.com/sorgerlab/gr50_tools 
 
-Browser interface and online tools: (in preparation)
+Browser interface and online tools: www.grcalculator.org
 
 ##General approach
 We have developed scripts to calculate normalized growth rate inhibition (GR) values and corresponding metrics (GR_50, GR_max, ...) based on cell counts measured in dose-response experiments. Users provide a tab-separated data file in which each row represents a separate treatment condition and the columns specify the keys that define the treatment condition (e.g. cell line, drug or other perturbagen, perturbagen concentration, treatment time, replicate) and the measured cell counts (or surrogate). The experimentally measured cell counts that are required for GR metric calculation are as follows: 
@@ -21,14 +21,14 @@ The provided GR scripts compute over the user’s data to calculate GR values in
 
 Based on a set of GR values across a range of concentrations, the data are fitted with a sigmoidal curve:
 
-    GR(c) = GR_inf + (1-GR_inf)/(1 + (c/(EC_50))^h_GR )
+    GR(c) = GR_inf + (1-GR_inf)/(1 + (c/(GEC_50))^h_GR )
 
 The following GR metrics are calculated: 
 - **GR_inf** = GR(c->inf), which reflects asymptotic drug efficacy. 
 - Hill coefficient of the sigmoidal curve (**h_GR**), which reflects how steep the dose-response curve is.
-- **EC_50**, the drug concentration at half-maximal effect, which reflects the potency of the drug.
+- **GEC_50**, the drug concentration at half-maximal effect, which reflects the potency of the drug.
 - **GR_50**, the concentration at which the effect reaches a GR value of 0.5 based on interpolation of the fitted curve.
-- **AUC**, the area over the dose-response curve, which is the integral of *1-GR(c)* over the range of concentrations tested. 
+- **GR_AOC**, the area over the dose-response curve, which is the integral of *1-GR(c)* over the range of concentrations tested, normalized by the range of concentration. 
 - **GR_max**, the effect at the highest tested concentration. Note that *GR_max* can differ from *GR_inf* if the dose-response does not reach its plateau value.
 
 In addition, the scripts report the r-squared of the fit and evaluate the significance of the sigmoidal fit based on an F-test. If the fit is not significant (p<0.05, or any arbitrary value), the sigmoidal fit is replaced by a constant value (flat fit). The cutoff value for the p-value can be set above 1 for bypassing the F-test. Additional information and considerations are described in the supplemental material of the manuscript referred above. 
@@ -79,7 +79,7 @@ Output variables are tables:
 - **t_GRvalues** contains the GR values for all treated cell count measurements.
 - **t_GRmetrics** contains the results of the sigmoidal fit across concentration for each unique set of keys found in the data. 
 \
-Columns of the t_GRmetrics table list the keys and the fitted parameters and values (*GR50*, *GRmax*, *GR_AUC*, *EC50*, *GRinf*, *Hill*, *r2*, and *pval*; see details above).
+Columns of the t_GRmetrics table list the keys and the fitted parameters and values (*GR50*, *GRmax*, *GR_AOC*, *GEC50*, *GRinf*, *Hill*, *r2*, and *pval*; see details above).
 
 The MATLAB sub-functions are processing MATLAB tables as follow:
 - **add_controls.m**: merge multiple tables to handle case B).
