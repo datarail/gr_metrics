@@ -1,7 +1,5 @@
 from cStringIO import StringIO
 
-import q
-
 class LineReader(object):
     """Adapt a line iterator into something that supports read.
 
