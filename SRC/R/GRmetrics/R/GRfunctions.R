@@ -20,6 +20,7 @@
 }
 
 .GRlogisticFit = function(inputData, groupingVariables, force = F, cap = F) {
+  experiment = NULL # declaring this NULL to avoid note on package check.
   experiments = levels(inputData$experiment)
   parameters = matrix(data = NA, ncol = 3, nrow = length(experiments))
   parameters = as.data.frame(parameters)
@@ -134,7 +135,9 @@
   return(parameters)
 }
 
-.GRlogistic_3u = function(c){GRinf + (1 - GRinf)/(1 + (c/GEC50)^Hill)}
+.GRlogistic_3u = function(c, GRinf, GEC50, Hill){
+  GRinf + (1 - GRinf)/(1 + (c/GEC50)^Hill)
+  }
 
 .trim_mean = function(x, percent) {
   x = x[!is.na(x)]
@@ -257,8 +260,7 @@
 #' concentration values (not log transformed) of the perturbagen on which
 #' dose-response curves will be evaluated
 #' @param cell_count (Case A and Case C) the name of the column with the
-#' measure of cell number (or a surrogate of cell number such as CellTiter-Glo®
-#' staining) after treatment
+#' measure of cell number (or a surrogate of cell number) after treatment
 #' @param time (Case C) the name of the column with the time at which a cell
 #' count is observed
 #' @param cell_count__time0 (Case A) the name of the column with Time 0 cell
@@ -308,13 +310,14 @@
 #' using the output from this function. For online GR calculator and browser, see
 #' \url{http://www.grcalculator.org}.
 #' @references Hafner, M., Niepel, M. Chung, M. and Sorger, P.K., "Growth Rate Inhibition Metrics Correct For Confounders In Measuring Sensitivity To Cancer Drugs". \emph{Nature Methods} 13.6 (2016): 521-527.
-#' \link{http://dx.doi.org/10.1038/nmeth.3853}
+#' \url{http://dx.doi.org/10.1038/nmeth.3853}
 #' @examples
 #' # Load Case A (example 1) input
 #' data("inputCaseA")
 #' head(inputCaseA)
 #' # Run GRfit function with case = "A"
-#' output1 = GRfit(inputData = inputCaseA, groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
+#' output1 = GRfit(inputData = inputCaseA,
+#' groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
 #' # See parameter table
 #' head(output1$parameter_table)
 #' # See GR values table
@@ -323,7 +326,9 @@
 #' # Same data, different format
 #' data("inputCaseC")
 #' head(inputCaseC)
-#' output4 = GRfit(inputData = inputCaseC, groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'), case = "C")
+#' output4 = GRfit(inputData = inputCaseC,
+#' groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'),
+#' case = "C")
 #'
 #' @export
 

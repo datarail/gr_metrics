@@ -14,8 +14,7 @@
   \item time: time of assay measured in hours (48, 72)
   \item concentration: concentration of the perturbagen on which dose-response curves
    will be evaluated (not log transformed)
-  \item cell_count: the measure of cell number (or a surrogate of cell number such
-   as CellTiter-Glo® staining) after treatment at the end of the assay
+  \item cell_count: the measure of cell number (or a surrogate of cell number) after treatment at the end of the assay
   \item cell_count__ctrl: the measure of cell number in control
   (e.g. untreated or DMSO-treated) wells from the same plate at the end of the assay
   \item cell_count__time0: the measure of cell number in untreated wells grown in

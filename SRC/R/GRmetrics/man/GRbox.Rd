@@ -53,9 +53,13 @@ be viewed in a static ggplot image or an interactive plotly graph.
 data("inputCaseA")
 head(inputCaseA)
 # Run GRfit function with case = "A"
-output1 = GRfit(inputData = inputCaseA, groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
-GRbox(output1, GRmetric ='GRinf', groupVariable = 'cell_line', pointColor = 'agent' , factors = c('BT20', 'MCF10A'))
-GRbox(output1, GRmetric ='GRinf', groupVariable = 'cell_line', pointColor = 'cell_line' , factors = c('BT20', 'MCF10A'), plotly = F)
+output1 = GRfit(inputData = inputCaseA,
+groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
+GRbox(output1, GRmetric ='GRinf',
+groupVariable = 'cell_line', pointColor = 'agent' , factors = c('BT20', 'MCF10A'))
+GRbox(output1, GRmetric ='GRinf',
+groupVariable = 'cell_line', pointColor = 'cell_line' ,
+factors = c('BT20', 'MCF10A'), plotly = FALSE)
 }
 \author{
 Nicholas Clark

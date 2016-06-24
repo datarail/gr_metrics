@@ -39,8 +39,7 @@ concentration values (not log transformed) of the perturbagen on which
 dose-response curves will be evaluated}
 
 \item{cell_count}{(Case A and Case C) the name of the column with the
-measure of cell number (or a surrogate of cell number such as CellTiter-Glo®
-staining) after treatment}
+measure of cell number (or a surrogate of cell number) after treatment}
 
 \item{time}{(Case C) the name of the column with the time at which a cell
 count is observed}
@@ -104,7 +103,8 @@ To see the underlying code, use (\code{getAnywhere(.GRlogistic_3u)}),
 data("inputCaseA")
 head(inputCaseA)
 # Run GRfit function with case = "A"
-output1 = GRfit(inputData = inputCaseA, groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
+output1 = GRfit(inputData = inputCaseA,
+groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
 # See parameter table
 head(output1$parameter_table)
 # See GR values table
@@ -113,7 +113,9 @@ head(output1$gr_table)
 # Same data, different format
 data("inputCaseC")
 head(inputCaseC)
-output4 = GRfit(inputData = inputCaseC, groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'), case = "C")
+output4 = GRfit(inputData = inputCaseC,
+groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'),
+case = "C")
 
 }
 \author{
@@ -121,7 +123,7 @@ Nicholas Clark
 }
 \references{
 Hafner, M., Niepel, M. Chung, M. and Sorger, P.K., "Growth Rate Inhibition Metrics Correct For Confounders In Measuring Sensitivity To Cancer Drugs". \emph{Nature Methods} 13.6 (2016): 521-527.
-\link{http://dx.doi.org/10.1038/nmeth.3853}
+\url{http://dx.doi.org/10.1038/nmeth.3853}
 }
 \seealso{
 See \code{\link{drm}} for the general logistic fit function that

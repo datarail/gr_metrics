@@ -36,15 +36,20 @@
 #' # Load Case A (example 1) input
 #' data("inputCaseA")
 #' # Run GRfit function with case = "A"
-#' drc_output = GRfit(inputCaseA, groupingVariables = c('cell_line','agent'))
-#' GRdrawDRC(drc_output, plotly = F)
-#' GRdrawDRC(drc_output, experiments = c('BT20 drugA', 'MCF10A drugA', 'MCF7 drugA'), min = 10^(-4), max = 10^2)
+#' drc_output = GRfit(inputCaseA,
+#' groupingVariables = c('cell_line','agent'))
+#' GRdrawDRC(drc_output, plotly = FALSE)
+#' GRdrawDRC(drc_output, experiments = c('BT20 drugA', 'MCF10A drugA', 'MCF7 drugA'),
+#' min = 10^(-4), max = 10^2)
 #' @export
 
 GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", points = T, curves = T, plotly = T) {
   if(points == F & curves == F) {
     stop('You must show either points or curves or both')
   }
+  # declaring values NULL to avoid note on package check
+  log10_concentration = NULL
+  experiment = NULL
   data = fitData$gr_table
   parameterTable = fitData$parameter_table
   groupingVariables = fitData$groupingVariables

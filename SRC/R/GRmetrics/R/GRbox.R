@@ -41,15 +41,19 @@
 #' data("inputCaseA")
 #' head(inputCaseA)
 #' # Run GRfit function with case = "A"
-#' output1 = GRfit(inputData = inputCaseA, groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
-#' GRbox(output1, GRmetric ='GRinf', groupVariable = 'cell_line', pointColor = 'agent' , factors = c('BT20', 'MCF10A'))
-#' GRbox(output1, GRmetric ='GRinf', groupVariable = 'cell_line', pointColor = 'cell_line' , factors = c('BT20', 'MCF10A'), plotly = F)
+#' output1 = GRfit(inputData = inputCaseA,
+#' groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
+#' GRbox(output1, GRmetric ='GRinf',
+#' groupVariable = 'cell_line', pointColor = 'agent' , factors = c('BT20', 'MCF10A'))
+#' GRbox(output1, GRmetric ='GRinf',
+#' groupVariable = 'cell_line', pointColor = 'cell_line' ,
+#' factors = c('BT20', 'MCF10A'), plotly = FALSE)
 #' @export
 
 GRbox <- function(fitData, GRmetric, groupVariable, pointColor, factors = "all", plotly = T) {
   data = fitData$parameter_table
   data[[groupVariable]] = factor(data[[groupVariable]])
-  if(factors != "all") {
+  if(!identical(factors, "all")) {
     if(length(intersect(factors, data[[groupVariable]])) != length(factors)) {
       stop('Factors must be values of the grouping variable')
     }
