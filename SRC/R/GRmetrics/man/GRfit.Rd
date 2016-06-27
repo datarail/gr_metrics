@@ -116,7 +116,13 @@ head(inputCaseC)
 output4 = GRfit(inputData = inputCaseC,
 groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'),
 case = "C")
-
+# Extract data tables and export to .tsv or .csv
+\dontrun{
+write.table(output1$parameter_table, file = "filename.tsv", quote = FALSE,
+sep = "\\t", row.names = FALSE)
+write.table(output1$gr_table, file = "filename.csv", quote = FALSE,
+sep = ",", row.names = FALSE)
+}
 }
 \author{
 Nicholas Clark

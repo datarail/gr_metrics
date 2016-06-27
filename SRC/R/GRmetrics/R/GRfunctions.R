@@ -329,7 +329,13 @@
 #' output4 = GRfit(inputData = inputCaseC,
 #' groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'),
 #' case = "C")
-#'
+#' # Extract data tables and export to .tsv or .csv
+#' \dontrun{
+#' write.table(output1$parameter_table, file = "filename.tsv", quote = FALSE,
+#' sep = "\t", row.names = FALSE)
+#' write.table(output1$gr_table, file = "filename.csv", quote = FALSE,
+#' sep = ",", row.names = FALSE)
+#' }
 #' @export
 
 GRfit = function(inputData, groupingVariables, GRtable = 'both', force = F, cap = F, case = "A", concentration = 'concentration', cell_count = 'cell_count', time = 'time', cell_count__time0 = 'cell_count__time0', cell_count__ctrl = 'cell_count__ctrl') {

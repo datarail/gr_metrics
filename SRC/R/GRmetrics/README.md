@@ -88,6 +88,9 @@ head(inputCaseA) #review the data
 drc_output = GRfit(inputCaseA, groupingVariables = c('cell_line','agent'))
 head(drc_output$gr_table) #review output table of GR values
 head(drc_output$parameter_table) #review output table of GR metrics parameters
+# Extract data tables and export to .tsv or .csv
+#write.table(drc_output$parameter_table, file = "filename.tsv", quote = FALSE, sep = "\t", row.names = FALSE)
+#write.table(drc_output$gr_table, file = "filename.csv", quote = FALSE, sep = ",", row.names = FALSE)
 
 # Draw dose-response curves
 GRdrawDRC(drc_output)
