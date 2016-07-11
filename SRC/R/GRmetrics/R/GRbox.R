@@ -50,7 +50,7 @@
 #' factors = c('BT20', 'MCF10A'), plotly = FALSE)
 #' @export
 
-GRbox <- function(fitData, GRmetric, groupVariable, pointColor, factors = "all", plotly = T) {
+GRbox <- function(fitData, GRmetric, groupVariable, pointColor, factors = "all", plotly = TRUE) {
   data = fitData$parameter_table
   data[[groupVariable]] = factor(data[[groupVariable]])
   if(!identical(factors, "all")) {
@@ -59,9 +59,9 @@ GRbox <- function(fitData, GRmetric, groupVariable, pointColor, factors = "all",
     }
     data = data[data[[groupVariable]] %in% factors, ]
   }
-  if(plotly == T) {
+  if(plotly == TRUE) {
     p <- ggplot2::ggplot(data, ggplot2::aes_string(x = groupVariable, y = GRmetric, text = 'experiment'))
-    p = p + ggplot2::geom_boxplot(ggplot2::aes_string(fill = groupVariable, alpha = 0.3), outlier.color = NA, show.legend = F) + ggplot2::geom_jitter(width = 0.5, show.legend = F, ggplot2::aes_string(colour = pointColor)) + ggplot2::xlab('') + ggplot2::ylab(GRmetric)
+    p = p + ggplot2::geom_boxplot(ggplot2::aes_string(fill = groupVariable, alpha = 0.3), outlier.color = NA, show.legend = FALSE) + ggplot2::geom_jitter(width = 0.5, show.legend = FALSE, ggplot2::aes_string(colour = pointColor)) + ggplot2::xlab('') + ggplot2::ylab(GRmetric)
     q = plotly::plotly_build(p)
     #     for(i in 1:length(q$data)){
     #       q$data[[i]]$text = gsub('x_factor', input$pick_box_x, p$data[[i]]$text)
@@ -72,7 +72,7 @@ GRbox <- function(fitData, GRmetric, groupVariable, pointColor, factors = "all",
     return(q)
   } else {
     p <- ggplot2::ggplot(data, ggplot2::aes_string(x = groupVariable, y = GRmetric))
-    p = p + ggplot2::geom_boxplot(ggplot2::aes_string(fill = groupVariable, alpha = 0.3), outlier.color = NA, show.legend = F) + ggplot2::geom_jitter(width = 0.5, ggplot2::aes_string(colour = pointColor)) + ggplot2::xlab('') + ggplot2::ylab(GRmetric)
+    p = p + ggplot2::geom_boxplot(ggplot2::aes_string(fill = groupVariable, alpha = 0.3), outlier.color = NA, show.legend = FALSE) + ggplot2::geom_jitter(width = 0.5, ggplot2::aes_string(colour = pointColor)) + ggplot2::xlab('') + ggplot2::ylab(GRmetric)
     return(p)
   }
 }

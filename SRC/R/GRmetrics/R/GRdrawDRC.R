@@ -43,8 +43,8 @@
 #' min = 10^(-4), max = 10^2)
 #' @export
 
-GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", points = T, curves = T, plotly = T) {
-  if(points == F & curves == F) {
+GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", points = TRUE, curves = TRUE, plotly = TRUE) {
+  if(points == FALSE & curves == FALSE) {
     stop('You must show either points or curves or both')
   }
   # declaring values NULL to avoid note on package check
@@ -54,25 +54,25 @@ GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", 
   parameterTable = fitData$parameter_table
   groupingVariables = fitData$groupingVariables
   data$log10_concentration = log10(data$concentration)
-  tmp<-data[,groupingVariables, drop = F]
+  tmp<-data[,groupingVariables, drop = FALSE]
   experimentNew = (apply(tmp,1, function(x) (paste(x,collapse=" "))))
   if(length(groupingVariables) > 0) {
     data$experiment = as.factor(experimentNew)
   } else {
     data$experiment = as.factor("All Data")
   }
-  if(experiments != "all") {
+  if(!identical(experiments, "all")) {
     parameterTable = parameterTable[parameterTable$experiment %in% experiments, ]
     data = data[data$experiment %in% experiments, ]
   }
   exps = unique(parameterTable$experiment)
   if(min == "auto") {
-    min_conc = min(data$concentration, na.rm = T)
+    min_conc = min(data$concentration, na.rm = TRUE)
   } else {
     min_conc = min
   }
   if(max == "auto") {
-    max_conc = max(data$concentration, na.rm = T)
+    max_conc = max(data$concentration, na.rm = TRUE)
   } else {
     max_conc = max
   }
@@ -103,16 +103,16 @@ GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", 
   }
   curve_data_all$experiment = as.factor(curve_data_all$experiment)
 
-  if(points == T & curves == F) {
+  if(points == TRUE & curves == FALSE) {
     p = ggplot2::ggplot(data = data, ggplot2::aes(x = log10_concentration, y = GR, colour = experiment)) + ggplot2::geom_point()
-  } else if(points == F & curves == T) {
+  } else if(points == FALSE & curves == TRUE) {
     p = ggplot2::ggplot(data = curve_data_all, ggplot2::aes(x = log10(Concentration), y = GR, colour = experiment)) + ggplot2::geom_line()
-  } else if(points == T & curves == T) {
+  } else if(points == TRUE & curves == TRUE) {
     p = ggplot2::ggplot() + ggplot2::geom_line(data = curve_data_all, ggplot2::aes(x = log10(Concentration), y = GR, colour = experiment)) + ggplot2::geom_point(data = data, ggplot2::aes(x = log10_concentration, y = GR, colour = experiment))
   }
-  p = p + ggplot2::coord_cartesian(xlim = c(log10(min_conc)-0.1, log10(max_conc)+0.1), ylim = c(-1, 1.5), expand = T) + ggplot2::ggtitle("Concentration vs. GR values") + ggplot2::xlab('Concentration (log10 scale)') + ggplot2::ylab('GR value') + ggplot2::labs(colour = "") + ggplot2::geom_hline(yintercept = 1, size = .25) + ggplot2::geom_hline(yintercept = 0, size = .25) + ggplot2::geom_hline(yintercept = -1, size = .25)
+  p = p + ggplot2::coord_cartesian(xlim = c(log10(min_conc)-0.1, log10(max_conc)+0.1), ylim = c(-1, 1.5), expand = TRUE) + ggplot2::ggtitle("Concentration vs. GR values") + ggplot2::xlab('Concentration (log10 scale)') + ggplot2::ylab('GR value') + ggplot2::labs(colour = "") + ggplot2::geom_hline(yintercept = 1, size = .25) + ggplot2::geom_hline(yintercept = 0, size = .25) + ggplot2::geom_hline(yintercept = -1, size = .25)
 
-  if(plotly == T) {
+  if(plotly == TRUE) {
     q = plotly::ggplotly(p)
     return(q)
   } else {

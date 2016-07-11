@@ -4,9 +4,10 @@
 \alias{GRfit}
 \title{Extract GR parameters from a dataset}
 \usage{
-GRfit(inputData, groupingVariables, GRtable = "both", force = F, cap = F,
-  case = "A", concentration = "concentration", cell_count = "cell_count",
-  time = "time", cell_count__time0 = "cell_count__time0",
+GRfit(inputData, groupingVariables, GRtable = "both", force = FALSE,
+  cap = FALSE, case = "A", concentration = "concentration",
+  cell_count = "cell_count", time = "time",
+  cell_count__time0 = "cell_count__time0",
   cell_count__ctrl = "cell_count__ctrl")
 }
 \arguments{

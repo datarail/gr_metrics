@@ -1,6 +1,6 @@
 # GRmetrics
 
-An R package for calculating Growth Rate Inhibition Metrics 
+An R package for calculating Growth Rate Inhibition Metrics
 
 ## Installation
 
@@ -8,14 +8,14 @@ Install the latest development version (on GitHub) via devtools:
 
 ```r
 install.packages("devtools")
-devtools::install_github("uc-bd2k/GRmetrics")
+devtools::install_github("uc-bd2k/GRmetrics", ref = "master_all_files", build_vignettes=TRUE)
 ```
 
 ####References:
 Hafner, M., Niepel, M. Chung, M. and Sorger, P.K., *Growth Rate Inhibition Metrics Correct For Confounders In Measuring Sensitivity To Cancer Drugs*. Nature Methods 13.6 (2016): 521-527.
 (http://dx.doi.org/10.1038/nmeth.3853)
 
-Corresponding MATLAB and Python scripts available on repo https://github.com/sorgerlab/gr50_tools 
+Corresponding MATLAB and Python scripts available on repo https://github.com/sorgerlab/gr50_tools
 
 Browser interface and online tools: http://www.grcalculator.org
 
@@ -140,7 +140,7 @@ data(inputCaseA)
 Implemented in MATLAB code. Not yet implemented in R package or online calculator.
 
 ####Case C: a single file with control values stacked with treated measurements
-In the most general case, the control cell counts are in the same file and format as the treated cell counts. Control cell counts will be averaged (using a 50%-trimmed mean) and automatically matched to the treated cell counts based on the keys (columns in the data file). The control cell count values must have a value of 0 for *concentration* and a value for *time* that matches the treated measurements. The time 0 cell count values must have value of 0 for *time*. If the structure of the data is complex, the provided scripts may inappropriately match control and treated cell counts, so users instead should format their data as described in case A or B. 
+In the most general case, the control cell counts are in the same file and format as the treated cell counts. Control cell counts will be averaged (using a 50%-trimmed mean) and automatically matched to the treated cell counts based on the keys (columns in the data file). The control cell count values must have a value of 0 for *concentration* and a value for *time* that matches the treated measurements. The time 0 cell count values must have value of 0 for *time*. If the structure of the data is complex, the provided scripts may inappropriately match control and treated cell counts, so users instead should format their data as described in case A or B.
 
 Case C corresponds to the toy example 4 in the GitHub folder.
 https://github.com/sorgerlab/gr50_tools/blob/master/INPUT/toy_example_input4.tsv
@@ -152,7 +152,7 @@ data(inputCaseC)
 ```
 
 ##General approach
-We have developed scripts to calculate normalized growth rate inhibition (GR) values and corresponding metrics (GR_50, GR_max, ...) based on cell counts measured in dose-response experiments. Users provide a tab-separated data file in which each row represents a separate treatment condition and the columns specify the keys that define the treatment condition (e.g. cell line, drug or other perturbagen, perturbagen concentration, treatment time, replicate) and the measured cell counts (or surrogate). The experimentally measured cell counts that are required for GR metric calculation are as follows: 
+We have developed scripts to calculate normalized growth rate inhibition (GR) values and corresponding metrics (GR_50, GR_max, ...) based on cell counts measured in dose-response experiments. Users provide a tab-separated data file in which each row represents a separate treatment condition and the columns specify the keys that define the treatment condition (e.g. cell line, drug or other perturbagen, perturbagen concentration, treatment time, replicate) and the measured cell counts (or surrogate). The experimentally measured cell counts that are required for GR metric calculation are as follows:
 - measured cell counts after perturbagen treatment (*cell_count*, *x(c)*)
 - measured cell counts of control (e.g. untreated or DMSO-treated) wells on the same plate (*control_cell\_\_count*, *x_ctrl*)
 - measured cell counts from an untreated sample grown in parallel until the time of treatment (*time0_cell\_\_count*, *x_0*)
@@ -165,13 +165,12 @@ Based on a set of GR values across a range of concentrations, the data are fitte
 
     GR(c) = GR_inf + (1-GR_inf)/(1 + (c/(GEC_50))^h_GR )
 
-The following GR metrics are calculated: 
-- **GR_inf** = GR(c->inf), which reflects asymptotic drug efficacy. 
+The following GR metrics are calculated:
+- **GR_inf** = GR(c->inf), which reflects asymptotic drug efficacy.
 - Hill coefficient of the sigmoidal curve (**h_GR**), which reflects how steep the dose-response curve is.
 - **GEC_50**, the drug concentration at half-maximal effect, which reflects the potency of the drug.
 - **GR_50**, the concentration at which the effect reaches a GR value of 0.5 based on interpolation of the fitted curve.
-- **GR_AOC**, the area over the dose-response curve, which is the integral of *1-GR(c)* over the range of concentrations tested, normalized by the range of concentration. 
+- **GR_AOC**, the area over the dose-response curve, which is the integral of *1-GR(c)* over the range of concentrations tested, normalized by the range of concentration.
 - **GR_max**, the effect at the highest tested concentration. Note that *GR_max* can differ from *GR_inf* if the dose-response does not reach its plateau value.
 
 In addition, the scripts report the r-squared of the fit and evaluate the significance of the sigmoidal fit based on an F-test. If the fit is not significant (p<0.05, or any arbitrary value), the sigmoidal fit is replaced by a constant value (flat fit). The cutoff value for the p-value can be set above 1 for bypassing the F-test. Additional information and considerations are described in the supplemental material of the manuscript referred above.
-

@@ -26,6 +26,9 @@
 \usage{
 inputCaseA
 }
+\value{
+An example dataset in the form of "Case A" generated for use with \code{\link{GRfit}}
+}
 \description{
 This is the dataset corresponding to Case A (example 1 in MATLAB scripts).
 See this page for details of the different cases of input considered:

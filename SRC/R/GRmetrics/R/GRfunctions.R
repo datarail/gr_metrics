@@ -1,13 +1,13 @@
-.GRcalculate = function(inputData, groupingVariables, cap = F, case = "A") {
+.GRcalculate = function(inputData, groupingVariables, cap = FALSE, case = "A") {
   log2nn = with(inputData, log2(cell_count/cell_count__time0))
   log2nn_ctrl = with(inputData, log2(cell_count__ctrl/cell_count__time0))
   GR = 2^(log2nn/log2nn_ctrl) - 1
   input_edited = inputData
   input_edited$log10_concentration = log10(input_edited$concentration)
   input_edited$GR = GR
-  tmp<-input_edited[,groupingVariables, drop = F]
+  tmp<-input_edited[,groupingVariables, drop = FALSE]
   experimentNew = (apply(tmp,1, function(x) (paste(x,collapse=" "))))
-  if(cap == T) {
+  if(cap == TRUE) {
     input_edited$GR[input_edited$GR > 1] = 1
     input_edited$GR[input_edited$GR < -1] = -1
   }
@@ -19,7 +19,7 @@
   return(input_edited)
 }
 
-.GRlogisticFit = function(inputData, groupingVariables, force = F, cap = F) {
+.GRlogisticFit = function(inputData, groupingVariables, force = FALSE, cap = FALSE) {
   experiment = NULL # declaring this NULL to avoid note on package check.
   experiments = levels(inputData$experiment)
   parameters = matrix(data = NA, ncol = 3, nrow = length(experiments))
@@ -43,12 +43,12 @@
     concs = sort(unique(data_exp$concentration))
     l = length(concs)
     max_concs = data_exp[data_exp$concentration %in% concs[c(l,l-1)],]
-    GRmax[i] = min(max_concs$GR, na.rm = T)
+    GRmax[i] = min(max_concs$GR, na.rm = TRUE)
     #     metadata[i,] = data_exp[1,1:5]
     if(!is.null(metadata)) {
-      metadata[i,] = data_exp[1,groupingVariables, drop = F]
+      metadata[i,] = data_exp[1,groupingVariables, drop = FALSE]
     }
-    GR_mean[i] = mean(data_exp$GR, na.rm = T)
+    GR_mean[i] = mean(data_exp$GR, na.rm = TRUE)
     #===== constrained fit ============
     c = unique(data_exp$concentration)
     priors = c(2, 0.1, median(c))
@@ -57,21 +57,21 @@
     if(dim(data_exp)[1] > 1) {
       controls = drc::drmc()
       controls$relTol = 1e-06 #set to match MATLAB code
-      controls$errorm = F
-      controls$noMessage = T
-      controls$rmNA = T
+      controls$errorm = FALSE
+      controls$noMessage = TRUE
+      controls$rmNA = TRUE
       output_model_new = try(drc::drm(GR~concentration, experiment, data=data_exp, fct=drc::LL.3u(names=c('Hill','GRinf','GEC50')), start = priors, lowerl = lower, upperl = upper, control = controls, na.action = na.omit))
       if(class(output_model_new)!="try-error") {
         parameters[i,] = c(as.numeric(coef(output_model_new)))
         # F-test for the significance of the sigmoidal fit
         Npara = 3 # N of parameters in the growth curve
         Npara_flat = 1 # F-test for the models
-        RSS2 = sum(residuals(output_model_new)^2, na.rm = T)
-        RSS1 = sum((data_exp$GR - mean(data_exp$GR, na.rm = T))^2, na.rm = T)
+        RSS2 = sum(residuals(output_model_new)^2, na.rm = TRUE)
+        RSS1 = sum((data_exp$GR - mean(data_exp$GR, na.rm = TRUE))^2, na.rm = TRUE)
         df1 = (Npara - Npara_flat)
         df2 = (length(na.omit(data_exp$GR)) - Npara + 1)
         f_value = ((RSS1-RSS2)/df1)/(RSS2/df2)
-        f_pval = pf(f_value, df1, df2, lower.tail = F)
+        f_pval = pf(f_value, df1, df2, lower.tail = FALSE)
         pval[i] = f_pval
         R_square[i] = 1 - RSS2/RSS1
       }
@@ -82,9 +82,9 @@
     GRavg = NULL
     for(j in 1:length(concs)) {
       data_trapz = data_exp[data_exp$concentration == concs[j],]
-      GRavg[j] = mean(data_trapz$GR, na.rm = T)
+      GRavg[j] = mean(data_trapz$GR, na.rm = TRUE)
     }
-    AOC[i] = sum((1 - (GRavg[1:(length(GRavg)-1)]+GRavg[2:length(GRavg)])/2)*diff(log10(concs), lag = 1), na.rm = T)/(log10(concs[length(concs)]) - log10(concs[1]))
+    AOC[i] = sum((1 - (GRavg[1:(length(GRavg)-1)]+GRavg[2:length(GRavg)])/2)*diff(log10(concs), lag = 1), na.rm = TRUE)/(log10(concs[length(concs)]) - log10(concs[1]))
   }
 
   # Calculate GR50 from parameters
@@ -97,7 +97,7 @@
   # Re-order rows to match reference_output
   parameters$experiment = experiments
   # Threshold for F-test pval
-  pcutoff = ifelse(force == F, .05 , 1)
+  pcutoff = ifelse(force == FALSE, .05 , 1)
   for(i in 1:dim(parameters)[1]) {
     if(!is.na(parameters$pval[i])) {
       parameters$fit[i] = ifelse(parameters$pval[i] >= pcutoff | is.na(parameters$GEC50[i]), "flat","sigmoid")
@@ -338,7 +338,7 @@
 #' }
 #' @export
 
-GRfit = function(inputData, groupingVariables, GRtable = 'both', force = F, cap = F, case = "A", concentration = 'concentration', cell_count = 'cell_count', time = 'time', cell_count__time0 = 'cell_count__time0', cell_count__ctrl = 'cell_count__ctrl') {
+GRfit = function(inputData, groupingVariables, GRtable = 'both', force = FALSE, cap = FALSE, case = "A", concentration = 'concentration', cell_count = 'cell_count', time = 'time', cell_count__time0 = 'cell_count__time0', cell_count__ctrl = 'cell_count__ctrl') {
   inputData = .convert(inputData, case, concentration, cell_count, time, cell_count__time0, cell_count__ctrl)
   gr_table = .GRcalculate(inputData, groupingVariables, cap, case)
   if(GRtable == 'GR') {

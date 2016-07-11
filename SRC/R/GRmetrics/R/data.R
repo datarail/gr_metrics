@@ -23,6 +23,7 @@
 #'   \item cell_count__time0: the measure of cell number in untreated wells grown in
 #'    parallel until the time of treatment
 #' }
+#' @return An example dataset in the form of "Case A" generated for use with \code{\link{GRfit}}
 #' @source \url{https://github.com/sorgerlab/gr50_tools/blob/master/INPUT/toy_example_input1.tsv}
 "inputCaseA"
 
@@ -48,5 +49,6 @@
 #'    will be evaluated (not log transformed)
 #'   \item cell_count: measure of cell number or a surrogate of the number of cells.
 #' }
+#' @return An example dataset in the form of "Case C" generated for use with \code{\link{GRfit}}
 #' @source \url{https://github.com/sorgerlab/gr50_tools/blob/master/INPUT/toy_example_input4.tsv}
 "inputCaseC"

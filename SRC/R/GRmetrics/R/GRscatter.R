@@ -41,7 +41,7 @@
 #' GRscatter(output1, 'GR50', 'agent', c('drugA','drugD'), 'drugB')
 #' GRscatter(output1, 'GR50', 'agent', c('drugA','drugD'), 'drugB', plotly = FALSE)
 
-GRscatter = function(fitData, GRmetric, variable, xaxis, yaxis, plotly = T) {
+GRscatter = function(fitData, GRmetric, variable, xaxis, yaxis, plotly = TRUE) {
   if(length(xaxis) != length(yaxis)) {
     if(length(xaxis) == 1) {
       xaxis = rep(xaxis, length(yaxis))
@@ -91,11 +91,11 @@ GRscatter = function(fitData, GRmetric, variable, xaxis, yaxis, plotly = T) {
   ## Get rid of any infinite values
   finite_values = which(is.finite(scatter_values))
   scatter_values = scatter_values[finite_values]
-  x_min = min(scatter_values, na.rm = T)
-  x_max = max(scatter_values, na.rm = T)
-  y_min = min(scatter_values, na.rm = T)
-  y_max = max(scatter_values, na.rm = T)
-  all_max = max(abs(c(x_max, y_max, x_min, y_min)), na.rm = T)
+  x_min = min(scatter_values, na.rm = TRUE)
+  x_max = max(scatter_values, na.rm = TRUE)
+  y_min = min(scatter_values, na.rm = TRUE)
+  y_max = max(scatter_values, na.rm = TRUE)
+  all_max = max(abs(c(x_max, y_max, x_min, y_min)), na.rm = TRUE)
   all_range = 2*all_max
   all_max = all_max + padding*all_range
   all_min = -all_max
@@ -109,7 +109,7 @@ GRscatter = function(fitData, GRmetric, variable, xaxis, yaxis, plotly = T) {
   } else {
     p = p + ggplot2::ggtitle(paste(GRmetric, "Scatterplot")) + ggplot2::labs(colour = "") + ggplot2::xlab(GRmetric) + ggplot2::ylab(GRmetric)
   }
-  if(plotly == T) {
+  if(plotly == TRUE) {
     q = plotly::ggplotly(p)
     return(q)
   } else {

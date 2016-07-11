@@ -4,3 +4,8 @@ export(GRbox)
 export(GRdrawDRC)
 export(GRfit)
 export(GRscatter)
+
+import(ggplot2)
+importFrom(plotly, plotly_build)
+importFrom(plotly, ggplotly)
+import(drc)
