@@ -50,6 +50,9 @@ The **GRmetrics** package can be installed through Bioconductor
 ```r
 source("http://bioconductor.org/biocLite.R")
 biocLite("GRmetrics")
+### if this doesn't work, use "devel" version of Bioconductor ###
+library(biocInstaller)
+useDevel()
 ```
 
 #References:
