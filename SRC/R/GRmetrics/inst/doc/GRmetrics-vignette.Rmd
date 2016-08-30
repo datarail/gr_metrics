@@ -25,7 +25,7 @@ drugs for a few days and the endpoint cell count values (or a surrogate) is
 compared. From the relative cell count, metrics of drug sensitivity such as 
 IC50 or Emax values are evaluated. In cases where the untreated control 
 cells grow over the course of the assay, these traditional metrics are 
-confounded by 
+cofounded by 
 the number of divisions that take place over the course of an assay. In 
 particular, for drugs that impact growth rate and block cell division, 
 slow-growing cell lines will appear more resistant than fast-growing lines 

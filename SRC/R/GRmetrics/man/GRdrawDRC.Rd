@@ -16,24 +16,28 @@ GRdrawDRC(fitData, experiments = "all", min = "auto", max = "auto",
 
 \item{max}{the maximum concentration to plot (for curves)}
 
-\item{points}{a logical value indicating whether points (individual GR values) will be plotted}
+\item{points}{a logical value indicating whether points (individual GR
+values) will be plotted}
 
-\item{curves}{a logical value indicating whether sigmoidal dose-response curves will be plotted}
+\item{curves}{a logical value indicating whether sigmoidal dose-response
+curves will be plotted}
 
-\item{plotly}{a logical value indicating whether to output a ggplot2 graph or a ggplotly graph}
+\item{plotly}{a logical value indicating whether to output a ggplot2 graph
+or a ggplotly graph}
 }
 \value{
-ggplot2 or ggplotly graphs of Growth-rate inhibition dose-response curves
+ggplot2 or ggplotly graphs of Growth-rate inhibition dose-response
+curves
 }
 \description{
 This function plots the Growth-rate inhibition dose-response curves for a
 given set of data.
 }
 \details{
-Given an object created \code{\link{GRfit}}, this function plots these GR
-values (versus concentration) and/or the sigmoidal curves fitted to the
-sets of points. The results can be viewed in a static ggplot image or an
-interactive plotly graph.
+Given a SummarizedExperiment object created \code{\link{GRfit}},
+this function plots these GR values (versus concentration) and/or the
+sigmoidal curves fitted to the sets of points. The results can be viewed
+in a static ggplot image or an interactive plotly graph.
 
 The "min" and "max" parameters control the concentration values for which
 the curves are plotted. They are automatically set to the minimum and
@@ -51,9 +55,9 @@ data("inputCaseA")
 # Run GRfit function with case = "A"
 drc_output = GRfit(inputCaseA,
 groupingVariables = c('cell_line','agent'))
+GRdrawDRC(drc_output, experiments = c('BT20 drugA', 'MCF10A drugA',
+'MCF7 drugA'), min = 10^(-4), max = 10^2)
 GRdrawDRC(drc_output, plotly = FALSE)
-GRdrawDRC(drc_output, experiments = c('BT20 drugA', 'MCF10A drugA', 'MCF7 drugA'),
-min = 10^(-4), max = 10^2)
 }
 \author{
 Nicholas Clark
