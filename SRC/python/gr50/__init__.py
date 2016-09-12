@@ -56,6 +56,59 @@ def compute_gr_single(record):
     gr = 2 ** (log2nn / log2nn_ctrl) - 1
     return gr
 
+def assign_ctrls(data, keys):
+    '''Compute and assign the controls based on keys
+
+    The input dataframe must contain the column cell_count
+    The input keys is a list of column names that will be used to assign controls
+
+    The column 'time' is used as a default key and necessary
+    Matching of conditions is based on the labels in the column 'role':
+    conditions labeled 'treatmemt' are normalized to conditions 'negative_control'
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Input data on which to assign the control values.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Deep copy of input data with columns 'cell_count__ctrl' and
+        'cell_count__time0'  appended.
+
+    Example
+    -------
+    df_out = assign_ctrl(df_in, ['cell_line', 'serum_pct'])
+
+    '''
+
+
+    # add 'time' from the set as it is a default one
+    keys = list(set(keys) - set(['time']))
+
+    df_keys = data[keys].drop_duplicates()
+    dfout = pd.DataFrame(columns=data.columns).copy()
+
+    for i in range(len(df_keys)):
+        idx = np.ones(len(data))==1
+        for k in keys:
+            idx &= data[k] == df_keys[k][i]
+
+        x0 = np.mean(data.loc[idx & (data.time==0), 'cell_count'].values)
+        times = data['time'][idx & (data.time>0)].drop_duplicates().values
+        for t in times:
+            idx_t = idx & (data.time==t) & (data.role=='treatment')
+            x_ctrl = np.mean(data.loc[idx & (data.time==t) & \
+                                      (data.role=='negative_control'), 'cell_count'].values)
+            df_ctrl = pd.DataFrame(np.repeat([[x0, x_ctrl]],sum(idx_t),axis=0),
+                                   columns=['cell_count__time0', 'cell_count__ctrl'])
+            dfout = dfout.append(pd.concat([data.loc[idx_t, :].reset_index(drop=True), df_ctrl],
+                                           axis=1),
+                                 ignore_index=True)
+    return dfout
+
+
 def compute_gr(data):
     """Compute Growth Response value for an entire dataset.
 
@@ -268,12 +321,12 @@ def gr_metrics(data, alpha=0.05):
     ...            columns=['drug', 'concentration', 'GRvalue'])
     >>> print gr_metrics(data)
       drug      GR50   GRmax    GR_AUC      EC50     GRinf      Hill  \\
-    0    A  0.114025  0.0188  0.481125  0.110411  0.018109  1.145262   
-    1    B       inf  0.9360  0.026375  0.000000  0.971000  0.010000   
+    0    A  0.114025  0.0188  0.481125  0.110411  0.018109  1.145262
+    1    B       inf  0.9360  0.026375  0.000000  0.971000  0.010000
     <BLANKLINE>
-                 r2      pval  
-    0  9.985790e-01  0.000054  
-    1 -1.243450e-14  1.000000  
+                 r2      pval
+    0  9.985790e-01  0.000054
+    1 -1.243450e-14  1.000000
     """
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
