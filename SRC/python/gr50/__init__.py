@@ -241,24 +241,24 @@ def _metrics(df, alpha):
         else:
             gr50 = -np.inf
         inf = flat_result.x[0]
-        ec50 = 0.0
+        gec50 = 0.0
         # Must be non-zero or the logistic function will error.
         slope = 0.01
         r2 = _rsquare(flat_result.x, _flat, df.concentration, df.GRvalue)
     else:
         gr50 = _logistic_inv(0.5, logistic_result.x)
         inf = logistic_result.x[0]
-        ec50 = 10 ** logistic_result.x[1]
+        gec50 = 10 ** logistic_result.x[1]
         slope = logistic_result.x[2]
         r2 = _rsquare(logistic_result.x, logistic, df.concentration, df.GRvalue)
     # Take the minimum across the highest 2 doses to minimize the effect of
     # outliers (robust minimum).
     max_ = min(df.GRvalue[-2:])
     log_conc = np.log10(df.concentration)
-    # Normalize AUC by concentration range (width of curve).
-    auc_width = log_conc.max() - log_conc.min()
-    auc = np.trapz(1 - df.GRvalue, log_conc) / auc_width
-    return [gr50, max_, auc, ec50, inf, slope, r2, pval]
+    # Normalize AOC by concentration range (width of curve).
+    aoc_width = log_conc.max() - log_conc.min()
+    aoc = np.trapz(1 - df.GRvalue, log_conc) / aoc_width
+    return [gr50, max_, aoc, gec50, inf, slope, r2, pval]
 
 def gr_metrics(data, alpha=0.05):
     """Compute Growth Response metrics for an entire dataset.
@@ -279,14 +279,14 @@ def gr_metrics(data, alpha=0.05):
 
     * GR50: Dose at which GR reaches 0.5.
     * GRmax: Maximum observed GR effect (minimum value).
-    * GR_AUC: Area under the curve of observed data points. Mathematically this
-      is calculated as 1-AUC so that increasing gr_auc values correspond to
+    * GR_AOC: Area over the curve of observed data points. Mathematically this
+      is calculated as 1-GR so that increasing gr_aoc values correspond to
       increasing agent effect. Also note the x-axis (concentration) values are
       log10-transformed, and the entire area is normalized by the width
       (difference between maximum and minimum concentration).
-    * EC50: Dose at which GR is halfway between 1 and gr_inf.
+    * GEC50: Dose at which GR is halfway between 1 and gr_inf.
     * GRinf: Extrapolated GR value at infinite dose.
-    * Hill: Hill slope of fitted logistic curve.
+    * h_GR: Hill slope of fitted logistic curve.
     * r2: R squared of fitted logistic curve.
     * pval: P-value from the F-test (see below).
 
@@ -294,7 +294,7 @@ def gr_metrics(data, alpha=0.05):
     F-test is then performed with the null hypothesis being that there is no
     dose response, i.e. the data can be fitted well with a straight horizontal
     line. If the null hypothesis is not rejected, the returned metrics are
-    chosen such that the logistic curve determined by gr_inf, ec50 and slope is
+    chosen such that the logistic curve determined by gr_inf, gec50 and slope is
     equivalent to the horizontal line fit, and gr50 is infinite (potentially
     positive *or* negative).
 
@@ -320,7 +320,7 @@ def gr_metrics(data, alpha=0.05):
     ...             ['B', 1.0, 1.04], ['B', 10.0, 0.936]],
     ...            columns=['drug', 'concentration', 'GRvalue'])
     >>> print gr_metrics(data)
-      drug      GR50   GRmax    GR_AUC      EC50     GRinf      Hill  \\
+      drug      GR50   GRmax    GR_AOC     GEC50     GRinf      h_GR   \\
     0    A  0.114025  0.0188  0.481125  0.110411  0.018109  1.145262
     1    B       inf  0.9360  0.026375  0.000000  0.971000  0.010000
     <BLANKLINE>
@@ -333,7 +333,7 @@ def gr_metrics(data, alpha=0.05):
                            "to use this function")
     non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
                     'cell_count__time0', 'GRvalue'))
-    metric_columns = ['GR50', 'GRmax', 'GR_AUC', 'EC50', 'GRinf', 'Hill', 'r2',
+    metric_columns = ['GR50', 'GRmax', 'GR_AOC', 'GEC50', 'GRinf', 'h_GR', 'r2',
                       'pval']
     keys = list(set(data.columns) - non_keys)
     gb = data.groupby(keys)

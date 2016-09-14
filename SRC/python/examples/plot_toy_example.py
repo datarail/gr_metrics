@@ -27,7 +27,7 @@ gr_metrics = gr50.gr_metrics(df)
 sns.set(style="ticks")
 grid = sns.FacetGrid(df, row="cell_line", col="agent", margin_titles=True)
 grid.set(xscale="log")
-grid.map(plt.plot, "concentration", "gr", lw=0, marker='o', ms=3)
+grid.map(plt.plot, "concentration", "gr", lw=0, marker='o', ms=4)
 x_min = df.concentration.min() / 10
 x_max = df.concentration.max() * 10
 fit_x = np.logspace(np.log10(x_min), np.log10(x_max))
@@ -35,13 +35,13 @@ for cell_line, row_axes in zip(grid.row_names, grid.axes):
     for agent, ax in zip(grid.col_names, row_axes):
         for m in gr_metrics[(gr_metrics.agent == agent) &
                             (gr_metrics.cell_line == cell_line)].itertuples():
-            fit_y = gr50.logistic(fit_x, [m.GRinf, np.log10(m.EC50), m.Hill])
-            ax.hlines(0.5, x_min, x_max, '#a0a0a0', linestyles='dotted', lw=0.5)
+            fit_y = gr50.logistic(fit_x, [m.GRinf, np.log10(m.GEC50), m.h_GR])
+            ax.hlines(0, x_min, x_max, '#707070', lw=0.5)
             ax.hlines(m.GRinf, x_min, x_max, '#ff00ff', linestyles='dashed',
                       lw=0.5)
-            ax.vlines(m.EC50, -1, 1, 'b', linestyles='dashed', lw=0.5)
+            ax.vlines(m.GEC50, -1, 1, 'b', linestyles='dashed', lw=0.5)
             ax.vlines(m.GR50, -1, 1, 'g', linestyles='dashed', lw=0.5)
-            ax.plot(fit_x, fit_y, 'r', lw=0.5)
+            ax.plot(fit_x, fit_y, 'r', lw=1)
 grid.set(ylim=(-1, 1.1))
 grid.fig.tight_layout(w_pad=1)
 plt.show()
