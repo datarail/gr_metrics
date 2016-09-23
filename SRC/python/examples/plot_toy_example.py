@@ -11,8 +11,6 @@ base_path = path.join(path.dirname(path.abspath(__file__)), '..', '..', '..')
 input_path = path.join(base_path, 'OUTPUT', 'toy_example_output.tsv')
 df = pd.read_csv(input_path, delimiter='\t')
 
-# Adjust column names.
-df.rename(columns={'GRvalue':'gr'}, inplace=True)
 # Filter down to only a manageable subset of the experiments.
 filters = (('time', 72), ('perturbation', 0), ('replicate', 1))
 for column, value in filters:
@@ -27,7 +25,7 @@ gr_metrics = gr50.gr_metrics(df)
 sns.set(style="ticks")
 grid = sns.FacetGrid(df, row="cell_line", col="agent", margin_titles=True)
 grid.set(xscale="log")
-grid.map(plt.plot, "concentration", "gr", lw=0, marker='o', ms=4)
+grid.map(plt.plot, "concentration", "GRvalue", lw=0, marker='o', ms=4)
 x_min = df.concentration.min() / 10
 x_max = df.concentration.max() * 10
 fit_x = np.logspace(np.log10(x_min), np.log10(x_max))
