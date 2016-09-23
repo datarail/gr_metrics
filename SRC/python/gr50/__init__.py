@@ -320,13 +320,13 @@ def gr_metrics(data, alpha=0.05):
     ...             ['B', 1.0, 1.04], ['B', 10.0, 0.936]],
     ...            columns=['drug', 'concentration', 'GRvalue'])
     >>> print gr_metrics(data)
-      drug      GR50   GRmax    GR_AOC     GEC50     GRinf      h_GR   \\
-    0    A  0.114025  0.0188  0.481125  0.110411  0.018109  1.145262
-    1    B       inf  0.9360  0.026375  0.000000  0.971000  0.010000
+      drug      GR50   GRmax    GR_AOC     GEC50     GRinf      h_GR  \\
+    0    A  0.114025  0.0188  0.481125  0.110411  0.018109  1.145262   
+    1    B       inf  0.9360  0.026375  0.000000  0.971000  0.010000   
     <BLANKLINE>
-                 r2      pval
-    0  9.985790e-01  0.000054
-    1 -1.243450e-14  1.000000
+                 r2      pval  
+    0  9.985790e-01  0.000054  
+    1 -1.243450e-14  1.000000  
     """
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
