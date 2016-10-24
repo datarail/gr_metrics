@@ -7,17 +7,21 @@
 #' @param experiments the names of the experiments to plot (or "all")
 #' @param min the minimum concentration to plot (for curves)
 #' @param max the maximum concentration to plot (for curves)
-#' @param points a logical value indicating whether points (individual GR values) will be plotted
-#' @param curves a logical value indicating whether sigmoidal dose-response curves will be plotted
-#' @param plotly a logical value indicating whether to output a ggplot2 graph or a ggplotly graph
+#' @param points a logical value indicating whether points (individual GR
+#' values) will be plotted
+#' @param curves a logical value indicating whether sigmoidal dose-response
+#' curves will be plotted
+#' @param plotly a logical value indicating whether to output a ggplot2 graph
+#' or a ggplotly graph
 #'
-#' @return ggplot2 or ggplotly graphs of Growth-rate inhibition dose-response curves
+#' @return ggplot2 or ggplotly graphs of Growth-rate inhibition dose-response
+#' curves
 #' @author Nicholas Clark
 #' @details
-#' Given an object created \code{\link{GRfit}}, this function plots these GR
-#' values (versus concentration) and/or the sigmoidal curves fitted to the
-#' sets of points. The results can be viewed in a static ggplot image or an
-#' interactive plotly graph.
+#' Given a SummarizedExperiment object created \code{\link{GRfit}},
+#' this function plots these GR values (versus concentration) and/or the
+#' sigmoidal curves fitted to the sets of points. The results can be viewed
+#' in a static ggplot image or an interactive plotly graph.
 #'
 #' The "min" and "max" parameters control the concentration values for which
 #' the curves are plotted. They are automatically set to the minimum and
@@ -38,21 +42,23 @@
 #' # Run GRfit function with case = "A"
 #' drc_output = GRfit(inputCaseA,
 #' groupingVariables = c('cell_line','agent'))
+#' GRdrawDRC(drc_output, experiments = c('BT20 drugA', 'MCF10A drugA',
+#' 'MCF7 drugA'), min = 10^(-4), max = 10^2)
 #' GRdrawDRC(drc_output, plotly = FALSE)
-#' GRdrawDRC(drc_output, experiments = c('BT20 drugA', 'MCF10A drugA', 'MCF7 drugA'),
-#' min = 10^(-4), max = 10^2)
 #' @export
 
-GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", points = TRUE, curves = TRUE, plotly = TRUE) {
+GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto",
+                      points = TRUE, curves = TRUE, plotly = TRUE) {
   if(points == FALSE & curves == FALSE) {
     stop('You must show either points or curves or both')
   }
   # declaring values NULL to avoid note on package check
   log10_concentration = NULL
   experiment = NULL
-  data = fitData$gr_table
-  parameterTable = fitData$parameter_table
-  groupingVariables = fitData$groupingVariables
+  data = S4Vectors::metadata(fitData)[[1]]
+  parameterTable = cbind(as.data.frame(SummarizedExperiment::colData(fitData)),
+                        t(SummarizedExperiment::assay(fitData)))
+  groupingVariables = S4Vectors::metadata(fitData)[[2]]
   data$log10_concentration = log10(data$concentration)
   tmp<-data[,groupingVariables, drop = FALSE]
   experimentNew = (apply(tmp,1, function(x) (paste(x,collapse=" "))))
@@ -62,7 +68,8 @@ GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", 
     data$experiment = as.factor("All Data")
   }
   if(!identical(experiments, "all")) {
-    parameterTable = parameterTable[parameterTable$experiment %in% experiments, ]
+    parameterTable = parameterTable[parameterTable$experiment %in%
+                                      experiments, ]
     data = data[data$experiment %in% experiments, ]
   }
   exps = unique(parameterTable$experiment)
@@ -77,7 +84,8 @@ GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", 
     max_conc = max
   }
   len = (log10(max_conc) - log10(min_conc))*100
-  Concentration = 10^(seq(log10(min_conc) - 1, log10(max_conc) + 1, length.out = len))
+  Concentration = 10^(seq(log10(min_conc) - 1, log10(max_conc) + 1,
+                          length.out = len))
   curve_data_all = NULL
   for(exp in exps) {
     row = which(parameterTable$experiment == exp)
@@ -104,13 +112,28 @@ GRdrawDRC <- function(fitData, experiments = "all", min = "auto", max = "auto", 
   curve_data_all$experiment = as.factor(curve_data_all$experiment)
 
   if(points == TRUE & curves == FALSE) {
-    p = ggplot2::ggplot(data = data, ggplot2::aes(x = log10_concentration, y = GR, colour = experiment)) + ggplot2::geom_point()
+    p = ggplot2::ggplot(data = data, ggplot2::aes(x = log10_concentration,
+                        y = GR, colour = experiment)) + ggplot2::geom_point()
   } else if(points == FALSE & curves == TRUE) {
-    p = ggplot2::ggplot(data = curve_data_all, ggplot2::aes(x = log10(Concentration), y = GR, colour = experiment)) + ggplot2::geom_line()
+    p = ggplot2::ggplot(data = curve_data_all,
+        ggplot2::aes(x = log10(Concentration),
+                    y = GR, colour = experiment)) + ggplot2::geom_line()
   } else if(points == TRUE & curves == TRUE) {
-    p = ggplot2::ggplot() + ggplot2::geom_line(data = curve_data_all, ggplot2::aes(x = log10(Concentration), y = GR, colour = experiment)) + ggplot2::geom_point(data = data, ggplot2::aes(x = log10_concentration, y = GR, colour = experiment))
+    p = ggplot2::ggplot() + ggplot2::geom_line(data = curve_data_all,
+                            ggplot2::aes(x = log10(Concentration), y = GR,
+                                          colour = experiment)) +
+      ggplot2::geom_point(data = data, ggplot2::aes(x = log10_concentration,
+                          y = GR, colour = experiment))
   }
-  p = p + ggplot2::coord_cartesian(xlim = c(log10(min_conc)-0.1, log10(max_conc)+0.1), ylim = c(-1, 1.5), expand = TRUE) + ggplot2::ggtitle("Concentration vs. GR values") + ggplot2::xlab('Concentration (log10 scale)') + ggplot2::ylab('GR value') + ggplot2::labs(colour = "") + ggplot2::geom_hline(yintercept = 1, size = .25) + ggplot2::geom_hline(yintercept = 0, size = .25) + ggplot2::geom_hline(yintercept = -1, size = .25)
+  p = p + ggplot2::coord_cartesian(xlim = c(log10(min_conc)-0.1,
+                                            log10(max_conc)+0.1),
+                                   ylim = c(-1, 1.5), expand = TRUE) +
+    ggplot2::ggtitle("Concentration vs. GR values") +
+    ggplot2::xlab('Concentration (log10 scale)') +
+    ggplot2::ylab('GR value') + ggplot2::labs(colour = "") +
+    ggplot2::geom_hline(yintercept = 1, size = .25) +
+    ggplot2::geom_hline(yintercept = 0, size = .25) +
+    ggplot2::geom_hline(yintercept = -1, size = .25)
 
   if(plotly == TRUE) {
     q = plotly::ggplotly(p)

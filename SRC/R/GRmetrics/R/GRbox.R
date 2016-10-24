@@ -20,10 +20,10 @@
 #' points colored by the given variable.
 #' @author Nicholas Clark
 #' @details
-#' Given an object created by \code{\link{GRfit}}, this function creates
-#' boxplots of a given GR metric (GR50, GRmax, etc.) for values of
-#' the grouping variable. The results can be viewed in a static ggplot image or an
-#' interactive plotly graph.
+#' Given a SummarizedExperiment object created by \code{\link{GRfit}},
+#' this function creates boxplots of a given GR metric (GR50, GRmax, etc.)
+#' for values of the grouping variable. The results can be viewed in a static
+#' ggplot image or an interactive plotly graph.
 #'
 #' By default, a boxplot is created for all unique
 #' values of the grouping variable. The "factors" parameter can be used to
@@ -42,37 +42,61 @@
 #' head(inputCaseA)
 #' # Run GRfit function with case = "A"
 #' output1 = GRfit(inputData = inputCaseA,
-#' groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
+#' groupingVariables = c('cell_line','agent', 'perturbation','replicate',
+#' 'time'))
 #' GRbox(output1, GRmetric ='GRinf',
-#' groupVariable = 'cell_line', pointColor = 'agent' , factors = c('BT20', 'MCF10A'))
+#' groupVariable = 'cell_line', pointColor = 'agent' , factors = c('BT20',
+#' 'MCF10A'))
 #' GRbox(output1, GRmetric ='GRinf',
 #' groupVariable = 'cell_line', pointColor = 'cell_line' ,
 #' factors = c('BT20', 'MCF10A'), plotly = FALSE)
 #' @export
 
-GRbox <- function(fitData, GRmetric, groupVariable, pointColor, factors = "all", plotly = TRUE) {
-  data = fitData$parameter_table
+GRbox <- function(fitData, GRmetric, groupVariable, pointColor,
+                  factors = "all", plotly = TRUE) {
+  data = cbind(as.data.frame(SummarizedExperiment::colData(fitData)),
+               t(SummarizedExperiment::assay(fitData)))
+  bottom_margin = max(nchar(data[[groupVariable]]), na.rm = TRUE)
   data[[groupVariable]] = factor(data[[groupVariable]])
   if(!identical(factors, "all")) {
     if(length(intersect(factors, data[[groupVariable]])) != length(factors)) {
       stop('Factors must be values of the grouping variable')
     }
     data = data[data[[groupVariable]] %in% factors, ]
+    bottom_margin = max(nchar(factors), na.rm = TRUE)
+  }
+  if(GRmetric == "GR50") {
+    data$`log10(GR50)` = log10(data$GR50)
+    GRmetric = "log10(GR50)"
+  }
+  if(GRmetric == "Hill") {
+    data$`log2(Hill)` = log2(data$Hill)
+    GRmetric = "log2(Hill)"
   }
   if(plotly == TRUE) {
-    p <- ggplot2::ggplot(data, ggplot2::aes_string(x = groupVariable, y = GRmetric, text = 'experiment'))
-    p = p + ggplot2::geom_boxplot(ggplot2::aes_string(fill = groupVariable, alpha = 0.3), outlier.color = NA, show.legend = FALSE) + ggplot2::geom_jitter(width = 0.5, show.legend = FALSE, ggplot2::aes_string(colour = pointColor)) + ggplot2::xlab('') + ggplot2::ylab(GRmetric)
+    p <- ggplot2::ggplot(data, ggplot2::aes_string(x = groupVariable,
+                          y = GRmetric, text = 'experiment'))
+    p = p + ggplot2::geom_boxplot(ggplot2::aes_string(fill = groupVariable,
+                  alpha = 0.3), outlier.color = NA, show.legend = FALSE) +
+      ggplot2::geom_jitter(width = 0.5, show.legend = FALSE,
+      ggplot2::aes_string(colour = pointColor)) +
+      ggplot2::xlab('') + ggplot2::ylab(GRmetric)
     q = plotly::plotly_build(p)
-    #     for(i in 1:length(q$data)){
-    #       q$data[[i]]$text = gsub('x_factor', input$pick_box_x, p$data[[i]]$text)
-    #       q$data[[i]]$text = gsub('y_variable', input$pick_box_y, p$data[[i]]$text)
-    #     }
-    #q$layout$xaxis$tickangle = -90
-    #q$layout$margin$b = 200
+    q$layout$xaxis$tickangle = -45
+    q$layout$margin$b = 15 + 6*bottom_margin
+    if(bottom_margin > 10) {
+      left_margin = q$layout$margin$l + (bottom_margin-10)*6
+      q$layout$margin$l = left_margin
+    }
     return(q)
   } else {
-    p <- ggplot2::ggplot(data, ggplot2::aes_string(x = groupVariable, y = GRmetric))
-    p = p + ggplot2::geom_boxplot(ggplot2::aes_string(fill = groupVariable, alpha = 0.3), outlier.color = NA, show.legend = FALSE) + ggplot2::geom_jitter(width = 0.5, ggplot2::aes_string(colour = pointColor)) + ggplot2::xlab('') + ggplot2::ylab(GRmetric)
+    p <- ggplot2::ggplot(data, ggplot2::aes_string(x = groupVariable,
+                                                   y = GRmetric))
+    p = p + ggplot2::geom_boxplot(ggplot2::aes_string(
+      fill = groupVariable, alpha = 0.3), outlier.color = NA,
+      show.legend = FALSE) + ggplot2::geom_jitter(
+        width = 0.5, ggplot2::aes_string(colour = pointColor)) +
+      ggplot2::xlab('') + ggplot2::ylab(GRmetric)
     return(p)
   }
 }

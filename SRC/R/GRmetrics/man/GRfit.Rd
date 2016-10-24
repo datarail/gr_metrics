@@ -4,23 +4,21 @@
 \alias{GRfit}
 \title{Extract GR parameters from a dataset}
 \usage{
-GRfit(inputData, groupingVariables, GRtable = "both", force = FALSE,
-  cap = FALSE, case = "A", concentration = "concentration",
-  cell_count = "cell_count", time = "time",
-  cell_count__time0 = "cell_count__time0",
-  cell_count__ctrl = "cell_count__ctrl")
+GRfit(inputData, groupingVariables, case = "A", force = FALSE,
+  cap = FALSE)
 }
 \arguments{
 \item{inputData}{a data table in one of the specified formats (Case A or
-Case C). See details below or
-\url{https://github.com/sorgerlab/gr50_tools/blob/master/README.md}}
+Case C). See details below for description. See \code{data(inputCaseA)} or
+\code{data(inputCaseC)} for example input data frames. See help files for
+\code{\link{inputCaseA}} and \code{\link{inputCaseC}} for description of
+these examples.}
 
 \item{groupingVariables}{a vector of column names from inputData. All of the
 columns in inputData except for those identified here will be averaged over.}
 
-\item{GRtable}{a character string ("param", "GR", or "both") identifying
-whether to return, respectively, only the table of parameters, only the
-table of GR values, or both tables. Default is "both".}
+\item{case}{either "A" or "C", indicating the format of the input data. See
+below for descriptions of these formats.}
 
 \item{force}{a logical value indicating whether to attempt to "force" a
 sigmoidal fit, i.e. whether to allow fits with F-test p-values greater
@@ -30,47 +28,20 @@ than .05}
 -1 and 1 (the range of the GR dose-response curve). If true, all GR values
 greater than 1 will be set to 1 and all values less than -1 will be set
 to -1.}
-
-\item{case}{either "A" or "C", indicating the format of the input data. See
-here \url{https://github.com/sorgerlab/gr50_tools/blob/master/README.md}
-or details below for descriptions of these formats.}
-
-\item{concentration}{(Case A and Case C) the name of the column with
-concentration values (not log transformed) of the perturbagen on which
-dose-response curves will be evaluated}
-
-\item{cell_count}{(Case A and Case C) the name of the column with the
-measure of cell number (or a surrogate of cell number) after treatment}
-
-\item{time}{(Case C) the name of the column with the time at which a cell
-count is observed}
-
-\item{cell_count__time0}{(Case A) the name of the column with Time 0 cell
-counts - the measure of cell number in untreated wells grown in parallel
-until the time of treatment}
-
-\item{cell_count__ctrl}{(Case A) the name of the column with the Control
-cell count - the measure of cell number in control (e.g. untreated or
-DMSO-treated) wells from the same plate}
 }
 \value{
-By default, a list of three elements is returned: 1) a data table of
-the original data, converted to the style of Case A, with GR values for each
-experiment 2) a data table of GR metrics parameters (GR50, GRmax, etc.) as
-well as goodness of fit measures. 3) the vector of grouping variables (this
-is used for other functions such as \code{\link{GRdrawDRC}}). If GRtable is
-equal to "GR", then only (1) and (3) are returned. If GRtable is set to
-"param", then only (2) and (3) are returned.
+A SummarizedExperiment object containing GR metrics parameters
+(GR50, GRmax, etc.) as well as goodness of fit measures is returned. The
+object also contains, in its metadata, a table of the original data
+converted to the style of "Case A" (with calculated GR values for each row)
+and a vector of the grouping variables used for the calculation.
 }
 \description{
 This function takes in a dataset with information about concentration,
-cell counts over time, and additional grouping variables for a dose-response assay
-and calculates growth-rate inhibition (GR) metrics for each experiment in
-the dataset. The data must be in a specific format: either that specified
-by case "A" or case "C" described here
-\url{https://github.com/sorgerlab/gr50_tools/blob/master/README.md} and in
-the details below, although the column names of the key variables
-(concentration, cell_count, etc.) can be specified in the command.
+cell counts over time, and additional grouping variables for a dose-response
+assay and calculates growth-rate inhibition (GR) metrics for each experiment
+in the dataset. The data must be in a specific format: either that specified
+by case "A" or case "C" described in the details below.
 }
 \details{
 Calculation of GR values is performed by the function \code{.GRcalculate}
@@ -94,6 +65,40 @@ given, with y equal to the mean of the GR values. In the parameters data
 table, for each flat fit, GEC50 is set to 0, Hill is set to 0.01, GRinf is
 set to the y value of the flat fit (the mean of the GR values), and GR50 is
 set to +/-Inf depending on whether GRinf is greater or less than .5.
+
+The mandatory columns for inputData for Case "A" are the following as
+well as other grouping columns.
+
+1. concentration - column with concentration values (not log transformed)
+of the perturbagen on which dose-response curves will be evaluated
+
+2. cell_count - column with the measure of cell number (or a surrogate of
+cell number) after treatment
+
+3. cell_count__time0 - column with initial (Time 0) cell counts - the
+measure of cell number in untreated wells grown in parallel until the
+time of treatment
+
+4. cell_count__ctrl - column with the Control cell count: the measure of
+cell number in control (e.g. untreated or DMSO-treated) wells from the
+same plate
+
+All other columns will be treated as additional keys on which the data
+will be grouped (e.g. cell_line, drug, time, replicate)
+
+The mandatory columns for inputData for Case "C" are the following as
+well as other grouping columns.
+
+1. concentration - column with concentration values (not log transformed)
+of the perturbagen on which dose-response curves will be evaluated
+
+2. cell_count - column with the measure of cell number (or a surrogate of
+cell number)
+
+3. time - column with the time at which a cell count is observed
+
+All other columns will be treated as additional keys on which the data
+will be grouped (e.g. *cell_line*, *drug*, *replicate*)
 }
 \note{
 To see the underlying code, use (\code{getAnywhere(.GRlogistic_3u)}),
@@ -105,23 +110,37 @@ data("inputCaseA")
 head(inputCaseA)
 # Run GRfit function with case = "A"
 output1 = GRfit(inputData = inputCaseA,
-groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
-# See parameter table
-head(output1$parameter_table)
-# See GR values table
-head(output1$gr_table)
+groupingVariables = c('cell_line','agent', 'perturbation','replicate',
+'time'))
+# Overview of SummarizedExperiment output data
+output1
+# View GR metrics table
+assay(output1)
+# View details of each experiment
+colData(output1)
+# View descriptions of each GR metric (or goodness of fit measure)
+\dontrun{
+View(rowData(output1))
+}
+# View table of original data (converted to style of Case A) with GR values
+metadata(output1)[[1]]
+# View vector of grouping variables used for calculation
+metadata(output1)[[2]]
 # Load Case C (example 4) input
 # Same data, different format
 data("inputCaseC")
 head(inputCaseC)
 output4 = GRfit(inputData = inputCaseC,
-groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'),
+groupingVariables = c('cell_line','agent', 'perturbation','replicate',
+'time'),
 case = "C")
 # Extract data tables and export to .tsv or .csv
 \dontrun{
-write.table(output1$parameter_table, file = "filename.tsv", quote = FALSE,
+# Write GR metrics parameter table to tab-separated text file
+write.table(assay(output1), file = "filename.tsv", quote = FALSE,
 sep = "\\t", row.names = FALSE)
-write.table(output1$gr_table, file = "filename.csv", quote = FALSE,
+# Write original data plus GR values to comma-separated file
+write.table(metadata(output1)[[1]], file = "filename.csv", quote = FALSE,
 sep = ",", row.names = FALSE)
 }
 }
@@ -129,15 +148,18 @@ sep = ",", row.names = FALSE)
 Nicholas Clark
 }
 \references{
-Hafner, M., Niepel, M. Chung, M. and Sorger, P.K., "Growth Rate Inhibition Metrics Correct For Confounders In Measuring Sensitivity To Cancer Drugs". \emph{Nature Methods} 13.6 (2016): 521-527.
+Hafner, M., Niepel, M. Chung, M. and Sorger, P.K.,
+"Growth Rate Inhibition Metrics Correct For Confounders In Measuring
+Sensitivity To Cancer Drugs". \emph{Nature Methods} 13.6 (2016): 521-527.
 \url{http://dx.doi.org/10.1038/nmeth.3853}
 }
 \seealso{
 See \code{\link{drm}} for the general logistic fit function that
-solves for the parameters GRinf, GEC50, and Hill slope. See \code{\link{drmc}} for
+solves for the parameters GRinf, GEC50, and Hill slope. See
+\code{\link{drmc}} for
 options of this function. Use the functions \code{\link{GRdrawDRC}},
 \code{\link{GRbox}}, and \code{\link{GRscatter}} to create visualizations
-using the output from this function. For online GR calculator and browser, see
-\url{http://www.grcalculator.org}.
+using the output from this function. For online GR calculator and browser,
+see \url{http://www.grcalculator.org}.
 }
 

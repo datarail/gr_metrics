@@ -1,4 +1,8 @@
-.GRcalculate = function(inputData, groupingVariables, cap = FALSE, case = "A") {
+.GRcalculate = function(inputData, groupingVariables, cap = FALSE, case = "A"){
+  # declaring values NULL to avoid note on package check
+  cell_count = NULL
+  cell_count__time0 = NULL
+  cell_count__ctrl = NULL
   log2nn = with(inputData, log2(cell_count/cell_count__time0))
   log2nn_ctrl = with(inputData, log2(cell_count__ctrl/cell_count__time0))
   GR = 2^(log2nn/log2nn_ctrl) - 1
@@ -19,14 +23,20 @@
   return(input_edited)
 }
 
-.GRlogisticFit = function(inputData, groupingVariables, force = FALSE, cap = FALSE) {
-  experiment = NULL # declaring this NULL to avoid note on package check.
+.GRlogisticFit = function(inputData, groupingVariables, force = FALSE,
+                          cap = FALSE) {
+  # declaring values NULL to avoid note on package check
+  experiment = NULL
+  GEC50 = NULL
+  GRinf = NULL
+  Hill = NULL
   experiments = levels(inputData$experiment)
   parameters = matrix(data = NA, ncol = 3, nrow = length(experiments))
   parameters = as.data.frame(parameters)
   colnames(parameters) = c('Hill','GRinf','GEC50')
   if(length(groupingVariables) > 0) {
-    metadata = matrix(data = NA, ncol = length(groupingVariables), nrow = length(experiments))
+    metadata = matrix(data = NA, ncol = length(groupingVariables),
+                      nrow = length(experiments))
     metadata = as.data.frame(metadata)
     colnames(metadata) = groupingVariables
   } else {
@@ -51,27 +61,32 @@
     GR_mean[i] = mean(data_exp$GR, na.rm = TRUE)
     #===== constrained fit ============
     c = unique(data_exp$concentration)
-    priors = c(2, 0.1, median(c))
+    priors = c(2, 0.1, stats::median(c))
     lower = c(.1, -1, min(c)*1e-2)
     upper = c(5, 1, max(c)*1e2)
     if(dim(data_exp)[1] > 1) {
       controls = drc::drmc()
-      controls$relTol = 1e-06 #set to match MATLAB code
+      controls$relTol = 1e-06
       controls$errorm = FALSE
       controls$noMessage = TRUE
       controls$rmNA = TRUE
-      output_model_new = try(drc::drm(GR~concentration, experiment, data=data_exp, fct=drc::LL.3u(names=c('Hill','GRinf','GEC50')), start = priors, lowerl = lower, upperl = upper, control = controls, na.action = na.omit))
+      output_model_new = try(drc::drm(
+        GR~concentration, experiment, data=data_exp,
+        fct=drc::LL.3u(names=c('Hill','GRinf','GEC50')), start = priors,
+        lowerl = lower, upperl = upper, control = controls,
+        na.action = na.omit))
       if(class(output_model_new)!="try-error") {
-        parameters[i,] = c(as.numeric(coef(output_model_new)))
+        parameters[i,] = c(as.numeric(stats::coef(output_model_new)))
         # F-test for the significance of the sigmoidal fit
         Npara = 3 # N of parameters in the growth curve
         Npara_flat = 1 # F-test for the models
-        RSS2 = sum(residuals(output_model_new)^2, na.rm = TRUE)
-        RSS1 = sum((data_exp$GR - mean(data_exp$GR, na.rm = TRUE))^2, na.rm = TRUE)
+        RSS2 = sum(stats::residuals(output_model_new)^2, na.rm = TRUE)
+        RSS1 = sum((data_exp$GR - mean(data_exp$GR, na.rm = TRUE))^2,
+                   na.rm = TRUE)
         df1 = (Npara - Npara_flat)
         df2 = (length(na.omit(data_exp$GR)) - Npara + 1)
         f_value = ((RSS1-RSS2)/df1)/(RSS2/df2)
-        f_pval = pf(f_value, df1, df2, lower.tail = FALSE)
+        f_pval = stats::pf(f_value, df1, df2, lower.tail = FALSE)
         pval[i] = f_pval
         R_square[i] = 1 - RSS2/RSS1
       }
@@ -84,11 +99,13 @@
       data_trapz = data_exp[data_exp$concentration == concs[j],]
       GRavg[j] = mean(data_trapz$GR, na.rm = TRUE)
     }
-    AOC[i] = sum((1 - (GRavg[1:(length(GRavg)-1)]+GRavg[2:length(GRavg)])/2)*diff(log10(concs), lag = 1), na.rm = TRUE)/(log10(concs[length(concs)]) - log10(concs[1]))
+    AOC[i] = sum((1 - (GRavg[1:(length(GRavg)-1)]+GRavg[2:length(GRavg)])/2)*
+                   diff(log10(concs), lag = 1), na.rm = TRUE)/
+      (log10(concs[length(concs)]) - log10(concs[1]))
   }
 
   # Calculate GR50 from parameters
-  parameters$GR50 = with(parameters, GEC50*((1-GRinf)/(0.5-GRinf) - 1)^(1/Hill))
+  parameters$GR50 = with(parameters,GEC50*((1-GRinf)/(0.5-GRinf) - 1)^(1/Hill))
   parameters$GRmax = GRmax
   parameters$GR_AOC = AOC
   parameters$r2 = R_square
@@ -100,14 +117,16 @@
   pcutoff = ifelse(force == FALSE, .05 , 1)
   for(i in 1:dim(parameters)[1]) {
     if(!is.na(parameters$pval[i])) {
-      parameters$fit[i] = ifelse(parameters$pval[i] >= pcutoff | is.na(parameters$GEC50[i]), "flat","sigmoid")
+      parameters$fit[i] = ifelse(parameters$pval[i] >= pcutoff |
+                                 is.na(parameters$GEC50[i]), "flat","sigmoid")
     } else {
       parameters$fit[i] = ifelse(is.na(parameters$GEC50[i]), "flat", "sigmoid")
     }
   }
   # changed to above code to deal with NAs
-  #parameters$fit = with(parameters, ifelse(pval >= pcutoff | is.na(GEC50), "flat","sigmoid"))
-  # Add specified values for flat fits: GEC50 = 0, Hill = 0.01 and GR50 = +/- Inf
+  #parameters$fit = with(parameters, ifelse(pval >= pcutoff | is.na(GEC50),
+  #"flat","sigmoid"))
+  # Add values for flat fits: GEC50 = 0, Hill = 0.01 and GR50 = +/- Inf
   parameters$flat_fit = GR_mean
   for(i in 1:dim(parameters)[1]) {
     if(parameters$fit[i] == "flat") {
@@ -128,7 +147,8 @@
       parameters$flat_fit[i] = NA
     }
   }
-  parameters = parameters[,c('GR50','GRmax','GR_AOC','GEC50','GRinf','Hill', 'r2','pval','experiment', 'fit','flat_fit')]
+  parameters = parameters[,c('GR50','GRmax','GR_AOC','GEC50','GRinf','Hill',
+                             'r2','pval','experiment', 'fit','flat_fit')]
   if(!is.null(metadata)) {
     parameters = cbind(metadata, parameters)
   }
@@ -155,31 +175,36 @@
   return(mean(x))
 }
 
-.convert = function(inputData, case, concentration = 'concentration', cell_count = 'cell_count', time = 'time', cell_count__time0 = 'cell_count__time0', cell_count__ctrl = 'cell_count__ctrl') {
+.convert = function(inputData, case) {
   if(case == "A") {
-    if(length(intersect(colnames(inputData), c('concentration', 'cell_count', 'cell_count__ctrl', 'cell_count__time0'))) == 4) {
+    if(length(intersect(colnames(inputData), c('concentration', 'cell_count',
+                                               'cell_count__ctrl',
+                                               'cell_count__time0'))) == 4) {
       return(inputData)
     } else {
-      inputData$concentration = inputData[[concentration]]
-      inputData$cell_count = inputData[[cell_count]]
-      inputData$cell_count__ctrl = inputData[[cell_count__ctrl]]
-      inputData$cell_count__time0 = inputData[[cell_count__time0]]
-      delete_cols = setdiff(c(concentration, cell_count, cell_count__time0, cell_count__ctrl), c('concentration', 'cell_count', 'cell_count__ctrl', 'cell_count__time0'))
-      delete_col_nums = which(colnames(inputData) %in% delete_cols)
-      inputData = inputData[,-delete_col_nums]
-      return(inputData)
+      stop("There must be columns named 'concentration', 'cell_count',
+            'cell_count__ctrl', and 'cell_count__time0' in inputData")
     }
   } else if(case == "C") {
-    delete_cols = which(colnames(inputData) %in% c(concentration, cell_count))
+    if(length(intersect(colnames(inputData), c('concentration', 'cell_count',
+                                               'time'))) != 3) {
+      stop("There must be columns named 'concentration', 'cell_count',
+           and 'time' in inputData")
+    }
+    delete_cols = which(colnames(inputData) %in% c('concentration',
+                                                   'cell_count'))
     keys = colnames(inputData)[-delete_cols]
-    time0 = inputData[inputData[[time]] == 0, c(keys, cell_count)]
-    ctrl = inputData[inputData[[concentration]] == 0 & inputData[[time]] > 0, c(keys, cell_count)]
-    data = inputData[inputData[[concentration]] != 0 & inputData[[time]] > 0, ]
+    time0 = inputData[inputData$time == 0, c(keys, 'cell_count')]
+    ctrl = inputData[inputData$concentration == 0 & inputData$time > 0,
+                     c(keys, 'cell_count')]
+    data = inputData[inputData$concentration != 0 & inputData$time > 0, ]
     time0_keys = NULL
     ctrl_keys = NULL
     for(i in 1:length(keys)) {
-      time0_keys[i] = length(intersect(time0[[ keys[i] ]], data[[ keys[i] ]])) > 0
-      ctrl_keys[i] = length(intersect(ctrl[[ keys[i] ]], data[[ keys[i] ]])) > 0
+      time0_keys[i] = length(intersect(time0[[ keys[i] ]],
+                                       data[[ keys[i] ]])) > 0
+      ctrl_keys[i] = length(intersect(ctrl[[ keys[i] ]],
+                                      data[[ keys[i] ]])) > 0
     }
     ctrl_keys = keys[ctrl_keys]
     time0_keys = keys[time0_keys]
@@ -199,12 +224,12 @@
     data$cell_count__ctrl = NA
     data$cell_count__time0 = NA
     for(key in unique(ctrl$key)) {
-      trimmed_mean = .trim_mean(ctrl[ctrl$key == key,][[cell_count]], 50)
+      trimmed_mean = .trim_mean(ctrl[ctrl$key == key,]$cell_count, 50)
       data[data$key_ctrl == key, 'cell_count__ctrl'] = trimmed_mean
     }
 
     for(key in unique(time0$key)) {
-      trimmed_mean = .trim_mean(time0[time0$key == key,][[cell_count]], 50)
+      trimmed_mean = .trim_mean(time0[time0$key == key,]$cell_count, 50)
       data[data$key_time0 == key, 'cell_count__time0'] = trimmed_mean
     }
 
@@ -213,39 +238,27 @@
 
     row.names(data) = 1:dim(data)[1]
     inputData = data
-    if(length(intersect(colnames(inputData), c('concentration', 'cell_count', 'time'))) == 3) {
-      return(inputData)
-    } else {
-      inputData$concentration = inputData[[concentration]]
-      inputData$cell_count = inputData[[cell_count]]
-      inputData$time = inputData[[time]]
-      delete_cols = setdiff(c(concentration, cell_count, time), c('concentration', 'cell_count', 'time'))
-      delete_col_nums = which(colnames(inputData) %in% delete_cols)
-      inputData = inputData[,-delete_col_nums]
-      return(inputData)
-    }
+    return(inputData)
   }
 }
 
 #' Extract GR parameters from a dataset
 #'
 #' This function takes in a dataset with information about concentration,
-#' cell counts over time, and additional grouping variables for a dose-response assay
-#' and calculates growth-rate inhibition (GR) metrics for each experiment in
-#' the dataset. The data must be in a specific format: either that specified
-#' by case "A" or case "C" described here
-#' \url{https://github.com/sorgerlab/gr50_tools/blob/master/README.md} and in
-#' the details below, although the column names of the key variables
-#' (concentration, cell_count, etc.) can be specified in the command.
+#' cell counts over time, and additional grouping variables for a dose-response
+#' assay and calculates growth-rate inhibition (GR) metrics for each experiment
+#' in the dataset. The data must be in a specific format: either that specified
+#' by case "A" or case "C" described in the details below.
 #'
 #' @param inputData a data table in one of the specified formats (Case A or
-#' Case C). See details below or
-#' \url{https://github.com/sorgerlab/gr50_tools/blob/master/README.md}
+#' Case C). See details below for description. See \code{data(inputCaseA)} or
+#' \code{data(inputCaseC)} for example input data frames. See help files for
+#' \code{\link{inputCaseA}} and \code{\link{inputCaseC}} for description of
+#' these examples.
 #' @param groupingVariables a vector of column names from inputData. All of the
-#'  columns in inputData except for those identified here will be averaged over.
-#' @param GRtable a character string ("param", "GR", or "both") identifying
-#'  whether to return, respectively, only the table of parameters, only the
-#'  table of GR values, or both tables. Default is "both".
+#' columns in inputData except for those identified here will be averaged over.
+#' @param case either "A" or "C", indicating the format of the input data. See
+#' below for descriptions of these formats.
 #' @param force a logical value indicating whether to attempt to "force" a
 #' sigmoidal fit, i.e. whether to allow fits with F-test p-values greater
 #' than .05
@@ -253,29 +266,11 @@
 #'  -1 and 1 (the range of the GR dose-response curve). If true, all GR values
 #'  greater than 1 will be set to 1 and all values less than -1 will be set
 #'  to -1.
-#' @param case either "A" or "C", indicating the format of the input data. See
-#' here \url{https://github.com/sorgerlab/gr50_tools/blob/master/README.md}
-#' or details below for descriptions of these formats.
-#' @param concentration (Case A and Case C) the name of the column with
-#' concentration values (not log transformed) of the perturbagen on which
-#' dose-response curves will be evaluated
-#' @param cell_count (Case A and Case C) the name of the column with the
-#' measure of cell number (or a surrogate of cell number) after treatment
-#' @param time (Case C) the name of the column with the time at which a cell
-#' count is observed
-#' @param cell_count__time0 (Case A) the name of the column with Time 0 cell
-#' counts - the measure of cell number in untreated wells grown in parallel
-#' until the time of treatment
-#' @param cell_count__ctrl (Case A) the name of the column with the Control
-#' cell count - the measure of cell number in control (e.g. untreated or
-#' DMSO-treated) wells from the same plate
-#' @return By default, a list of three elements is returned: 1) a data table of
-#' the original data, converted to the style of Case A, with GR values for each
-#' experiment 2) a data table of GR metrics parameters (GR50, GRmax, etc.) as
-#' well as goodness of fit measures. 3) the vector of grouping variables (this
-#' is used for other functions such as \code{\link{GRdrawDRC}}). If GRtable is
-#' equal to "GR", then only (1) and (3) are returned. If GRtable is set to
-#' "param", then only (2) and (3) are returned.
+#' @return A SummarizedExperiment object containing GR metrics parameters
+#' (GR50, GRmax, etc.) as well as goodness of fit measures is returned. The
+#' object also contains, in its metadata, a table of the original data
+#' converted to the style of "Case A" (with calculated GR values for each row)
+#' and a vector of the grouping variables used for the calculation.
 #' @author Nicholas Clark
 #' @details
 #' Calculation of GR values is performed by the function \code{.GRcalculate}
@@ -300,64 +295,136 @@
 #' set to the y value of the flat fit (the mean of the GR values), and GR50 is
 #' set to +/-Inf depending on whether GRinf is greater or less than .5.
 #'
+#' The mandatory columns for inputData for Case "A" are the following as
+#' well as other grouping columns.
+#'
+#' 1. concentration - column with concentration values (not log transformed)
+#' of the perturbagen on which dose-response curves will be evaluated
+#'
+#' 2. cell_count - column with the measure of cell number (or a surrogate of
+#' cell number) after treatment
+#'
+#' 3. cell_count__time0 - column with initial (Time 0) cell counts - the
+#' measure of cell number in untreated wells grown in parallel until the
+#' time of treatment
+#'
+#' 4. cell_count__ctrl - column with the Control cell count: the measure of
+#' cell number in control (e.g. untreated or DMSO-treated) wells from the
+#' same plate
+#'
+#' All other columns will be treated as additional keys on which the data
+#' will be grouped (e.g. cell_line, drug, time, replicate)
+#'
+#' The mandatory columns for inputData for Case "C" are the following as
+#' well as other grouping columns.
+#'
+#' 1. concentration - column with concentration values (not log transformed)
+#' of the perturbagen on which dose-response curves will be evaluated
+#'
+#' 2. cell_count - column with the measure of cell number (or a surrogate of
+#' cell number)
+#'
+#' 3. time - column with the time at which a cell count is observed
+#'
+#' All other columns will be treated as additional keys on which the data
+#' will be grouped (e.g. *cell_line*, *drug*, *replicate*)
 #' @note
 #' To see the underlying code, use (\code{getAnywhere(.GRlogistic_3u)}),
 #' (\code{getAnywhere(.GRcalculate)}), and (\code{getAnywhere(.GRlogisticFit)})
 #' @seealso See \code{\link{drm}} for the general logistic fit function that
-#' solves for the parameters GRinf, GEC50, and Hill slope. See \code{\link{drmc}} for
+#' solves for the parameters GRinf, GEC50, and Hill slope. See
+#' \code{\link{drmc}} for
 #' options of this function. Use the functions \code{\link{GRdrawDRC}},
 #' \code{\link{GRbox}}, and \code{\link{GRscatter}} to create visualizations
-#' using the output from this function. For online GR calculator and browser, see
-#' \url{http://www.grcalculator.org}.
-#' @references Hafner, M., Niepel, M. Chung, M. and Sorger, P.K., "Growth Rate Inhibition Metrics Correct For Confounders In Measuring Sensitivity To Cancer Drugs". \emph{Nature Methods} 13.6 (2016): 521-527.
+#' using the output from this function. For online GR calculator and browser,
+#' see \url{http://www.grcalculator.org}.
+#' @references Hafner, M., Niepel, M. Chung, M. and Sorger, P.K.,
+#' "Growth Rate Inhibition Metrics Correct For Confounders In Measuring
+#' Sensitivity To Cancer Drugs". \emph{Nature Methods} 13.6 (2016): 521-527.
 #' \url{http://dx.doi.org/10.1038/nmeth.3853}
+#'
 #' @examples
 #' # Load Case A (example 1) input
 #' data("inputCaseA")
 #' head(inputCaseA)
 #' # Run GRfit function with case = "A"
 #' output1 = GRfit(inputData = inputCaseA,
-#' groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'))
-#' # See parameter table
-#' head(output1$parameter_table)
-#' # See GR values table
-#' head(output1$gr_table)
+#' groupingVariables = c('cell_line','agent', 'perturbation','replicate',
+#' 'time'))
+#' # Overview of SummarizedExperiment output data
+#' output1
+#' # View GR metrics table
+#' assay(output1)
+#' # View details of each experiment
+#' colData(output1)
+#' # View descriptions of each GR metric (or goodness of fit measure)
+#' \dontrun{
+#' View(rowData(output1))
+#' }
+#' # View table of original data (converted to style of Case A) with GR values
+#' metadata(output1)[[1]]
+#' # View vector of grouping variables used for calculation
+#' metadata(output1)[[2]]
 #' # Load Case C (example 4) input
 #' # Same data, different format
 #' data("inputCaseC")
 #' head(inputCaseC)
 #' output4 = GRfit(inputData = inputCaseC,
-#' groupingVariables = c('cell_line','agent', 'perturbation','replicate', 'time'),
+#' groupingVariables = c('cell_line','agent', 'perturbation','replicate',
+#' 'time'),
 #' case = "C")
 #' # Extract data tables and export to .tsv or .csv
 #' \dontrun{
-#' write.table(output1$parameter_table, file = "filename.tsv", quote = FALSE,
+#' # Write GR metrics parameter table to tab-separated text file
+#' write.table(assay(output1), file = "filename.tsv", quote = FALSE,
 #' sep = "\t", row.names = FALSE)
-#' write.table(output1$gr_table, file = "filename.csv", quote = FALSE,
+#' # Write original data plus GR values to comma-separated file
+#' write.table(metadata(output1)[[1]], file = "filename.csv", quote = FALSE,
 #' sep = ",", row.names = FALSE)
 #' }
 #' @export
 
-GRfit = function(inputData, groupingVariables, GRtable = 'both', force = FALSE, cap = FALSE, case = "A", concentration = 'concentration', cell_count = 'cell_count', time = 'time', cell_count__time0 = 'cell_count__time0', cell_count__ctrl = 'cell_count__ctrl') {
-  inputData = .convert(inputData, case, concentration, cell_count, time, cell_count__time0, cell_count__ctrl)
+GRfit = function(inputData, groupingVariables, case = "A",
+                 force = FALSE, cap = FALSE) {
+  if('experiment' %in% colnames(inputData)) {
+    stop("Change name of 'experiment' column.")
+  }
+  inputData = .convert(inputData, case)
   gr_table = .GRcalculate(inputData, groupingVariables, cap, case)
-  if(GRtable == 'GR') {
-    returnList = list(gr_table, groupingVariables)
-    names(returnList) = c(gr_table, groupingVariables)
-    class(returnList) = 'GRfit'
-    return(returnList)
-  }
   parameter_table = .GRlogisticFit(gr_table, groupingVariables, force, cap)
-  if(GRtable == 'param'){
-    returnList = list(parameter_table, groupingVariables)
-    names(returnList) = c('parameter_table', 'groupingVariables')
-    class(returnList) = 'GRfit'
-    return(returnList)
-  } else if(GRtable == 'both') {
-    returnList = list(gr_table,parameter_table, groupingVariables)
-    names(returnList) = c('gr_table', 'parameter_table', 'groupingVariables')
-    class(returnList) = 'GRfit'
-    return(returnList)
-  }
+
+  colData = parameter_table[ ,c(groupingVariables, 'fit', 'experiment')]
+  rownames(colData) = colData$experiment
+  colData = S4Vectors::DataFrame(colData)
+
+  Metrics = c("GR50","GRmax","GR_AOC","GEC50","GRinf","Hill",
+                "r2","pval","flat_fit")
+  assays = parameter_table[ , Metrics]
+  rownames(assays) = parameter_table$experiment
+  assays = t(assays)
+
+  Description = c("The concentration at which GR(c) = 0.5",
+                  "The maximal effect of the drug (minimal GR value",
+                  "The 'Area Over the Curve' - The area between the line
+                  GR = 1 and the curve, similar to traditional AUC",
+                  "The concentration at half-maximal effect",
+                  "The Hill coefficient of the fitted curve, which reflects
+                  how steep the dose-response curve is",
+                  "The coefficient of determination - essentially how well
+                  the curve fits to the data points",
+                  "The p-value of the F-test comparing the fit of the curve
+                  to a horizontal line fit",
+                  "For data that doesn't significantly fit better to a curve
+                  than a horizontal line fit, the GR value of the flat line")
+  rowData = cbind(Metrics, Description)
+  rownames(rowData) = Metrics
+  rowData = S4Vectors::DataFrame(rowData)
+  rowData$Metrics = as.character(rowData$Metrics)
+  rowData$Description = as.character(rowData$Description)
+
+  output = SummarizedExperiment::SummarizedExperiment(assays = assays,
+                                                      colData = colData,
+            rowData = rowData, metadata = list(gr_table, groupingVariables))
+  return(output)
 }
 

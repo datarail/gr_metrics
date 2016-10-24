@@ -1,24 +1,20 @@
 Package: GRmetrics
 Type: Package
 Title: Calculate growth-rate inhibition (GR) metrics
-Version: 0.99.0
+Version: 0.99.10
 Date: 2016-07-11
 Author: Nicholas Clark
 Maintainer: Nicholas Clark <nicholas.clark00@gmail.com>
-biocViews: CellBasedAssays, CellBiology, Software, TimeCourse, Visualization
-Description: Functions for calculating and visualizing growth-rate inhibition
-    (GR) metrics.
+biocViews: CellBasedAssays, CellBiology, Software, TimeCourse,
+        Visualization
+Description: Functions for calculating and visualizing growth-rate
+        inhibition (GR) metrics.
 License: GPL-3
 URL: https://github.com/uc-bd2k/GRmetrics
 BugReports: https://github.com/uc-bd2k/GRmetrics/issues
 LazyData: TRUE
-Depends: R (>= 2.0)
-Imports:
-    drc,
-    ggplot2,
-    plotly
+Depends: R (>= 3.3), SummarizedExperiment
+Imports: drc, plotly, ggplot2, S4Vectors
 RoxygenNote: 5.0.1
-Suggests: knitr,
-    rmarkdown,
-    BiocStyle
+Suggests: knitr, rmarkdown, BiocStyle
 VignetteBuilder: knitr
