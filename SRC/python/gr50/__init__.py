@@ -17,7 +17,7 @@ __all__ = ['compute_gr', 'compute_gr_single', 'gr_metrics', 'logistic']
 
 
 def _normalize_log2(n, n_0_0):
-    normalized = n / n_0_0
+    normalized = max(n / n_0_0, 1e-6) # avoiding negative and null values
     return math.log(normalized, 2)
 
 def compute_gr_single(record):
@@ -27,7 +27,7 @@ def compute_gr_single(record):
     numeric fields:
 
     * cell_count: Number of cells detected in this sample.
-    * cell_count__time0: Number of cells in the time=0 control for this sample.
+    * cell_count__time0: Number of cells in the treatment_duration=0 control for this sample.
     * cell_count__ctrl: Number of cells in the no-perturbation control.
 
     Parameters
@@ -62,7 +62,7 @@ def assign_ctrls(data, keys):
     The input dataframe must contain the column cell_count
     The input keys is a list of column names that will be used to assign controls
 
-    The column 'time' is used as a default key and necessary
+    The column 'treatment_duration' is used as a default key and necessary
     Matching of conditions is based on the labels in the column 'role':
     conditions labeled 'treatmemt' are normalized to conditions 'negative_control'
 
@@ -84,10 +84,11 @@ def assign_ctrls(data, keys):
     '''
 
 
-    # add 'time' from the set as it is a default one
-    keys = list(set(keys) - set(['time']))
+    # add 'treatment_duration' from the set as it is a default one
+    keys = list(set(keys) - set(['treatment_duration']))
 
     df_keys = data[keys].drop_duplicates()
+    df_keys.reset_index(inplace=True)
     dfout = pd.DataFrame(columns=data.columns).copy()
 
     for i in range(len(df_keys)):
@@ -95,11 +96,11 @@ def assign_ctrls(data, keys):
         for k in keys:
             idx &= data[k] == df_keys[k][i]
 
-        x0 = np.mean(data.loc[idx & (data.time==0), 'cell_count'].values)
-        times = data['time'][idx & (data.time>0)].drop_duplicates().values
+        x0 = np.mean(data.loc[idx & (data.treatment_duration==0), 'cell_count'].values)
+        times = data['treatment_duration'][idx & (data.treatment_duration>0)].drop_duplicates().values
         for t in times:
-            idx_t = idx & (data.time==t) & (data.role=='treatment')
-            x_ctrl = np.mean(data.loc[idx & (data.time==t) & \
+            idx_t = idx & (data.treatment_duration==t) & (data.role=='treatment')
+            x_ctrl = np.mean(data.loc[idx & (data.treatment_duration==t) & \
                                       (data.role=='negative_control'), 'cell_count'].values)
             df_ctrl = pd.DataFrame(np.repeat([[x0, x_ctrl]],sum(idx_t),axis=0),
                                    columns=['cell_count__time0', 'cell_count__ctrl'])
@@ -115,7 +116,7 @@ def compute_gr(data):
     The input dataframe must contain at least the following numeric fields:
 
     * cell_count: Number of cells detected per sample.
-    * cell_count__time0: Number of cells in the time=0 control for each sample.
+    * cell_count__time0: Number of cells in the treatment_duration=0 control for each sample.
     * cell_count__ctrl: Number of cells in the no-perturbation control.
 
     The input must not already contain a column named 'GRvalue'.
