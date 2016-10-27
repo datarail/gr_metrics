@@ -3,6 +3,10 @@
 export(GRbox)
 export(GRdrawDRC)
 export(GRfit)
+export(GRgetDefs)
+export(GRgetGroupVars)
+export(GRgetMetrics)
+export(GRgetValues)
 export(GRscatter)
 
 import(ggplot2)

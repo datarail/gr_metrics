@@ -24,22 +24,24 @@ below for descriptions of these formats.}
 sigmoidal fit, i.e. whether to allow fits with F-test p-values greater
 than .05}
 
-\item{cap}{a logical value indicating whether to cap GR values in between
--1 and 1 (the range of the GR dose-response curve). If true, all GR values
-greater than 1 will be set to 1 and all values less than -1 will be set
-to -1.}
+\item{cap}{a logical value indicating whether to cap GR values (or 
+relative cell counts) at 1. If true, all values greater than 1 will 
+be set to 1.}
 }
 \value{
-A SummarizedExperiment object containing GR metrics parameters
-(GR50, GRmax, etc.) as well as goodness of fit measures is returned. The
+A SummarizedExperiment object containing GR metrics 
+(GR50, GRmax, etc.) and traditional metrics (IC50, Emax, etc.) 
+as well as goodness of fit measures is returned. The
 object also contains, in its metadata, a table of the original data
-converted to the style of "Case A" (with calculated GR values for each row)
-and a vector of the grouping variables used for the calculation.
+converted to the style of "Case A" (with calculated GR values and relative 
+cell counts for each row) and a vector of the grouping variables used for 
+the calculation.
 }
 \description{
 This function takes in a dataset with information about concentration,
 cell counts over time, and additional grouping variables for a dose-response
-assay and calculates growth-rate inhibition (GR) metrics for each experiment
+assay and calculates growth-rate inhibition (GR) metrics as well as 
+traditional metrics (IC50, Emax, etc.) for each experiment
 in the dataset. The data must be in a specific format: either that specified
 by case "A" or case "C" described in the details below.
 }
@@ -51,20 +53,28 @@ according to the "Online Methods" section of Hafner and Niepel et al.
 The fitting of the logistic curve is performed by the \code{.GRlogisticFit}
 function, which calls the \code{drm} function from the \code{drc} package
 to solve for the curve parameters. The GR curve fit function is
-given by f(c) = GRinf + (1 - GRinf)/(1 + (c/GEC50)^Hill) where c is
-concentration. The fit is performed under following constraints: Hill slope
+given by f(c) = GRinf + (1 - GRinf)/(1 + (c/GEC50)^h_GR) where c is
+concentration. The fit is performed under following constraints: h_GR 
 in [.1, 5], GRinf in [-1, 1], and GEC50 in [min(c)*1e-2, max(c)*1e2] (c is
-concentration). The initial conditions for the fitting algorithm are Hill
-slope = 2, GRinf = 0.1 and GEC50 = median(c).
+concentration). The initial conditions for the fitting algorithm are h_GR 
+= 2, GRinf = 0.1 and GEC50 = median(c). The fitting of the 
+traditional dose response curve is done using the same formula, 
+replacing GRinf with Einf, GEC50 with EC50, and h_GR with h. The fit is 
+performed on the relative cell counts instead of GR values. Also, since the 
+traditional dose response curve is bounded between 0 and 1 whereas the 
+GR dose response curve is bounded between -1 and 1, we restrict Einf to 
+the range [0, 1].
 
-The parameters of the curve for each experiment are fitted separately. An
+The parameters of the GR dose response curves (and traditional dose 
+response curves) for each experiment are fitted separately. An
 F-test is used to compare the sigmoidal fit to a flat line fit. If the
 p-value of the F-test is less than .05, the sigmoidal fit is accepted. If
 the p-value is greater than or equal to .05, a flat horizontal line fit is
-given, with y equal to the mean of the GR values. In the parameters data
-table, for each flat fit, GEC50 is set to 0, Hill is set to 0.01, GRinf is
-set to the y value of the flat fit (the mean of the GR values), and GR50 is
-set to +/-Inf depending on whether GRinf is greater or less than .5.
+given, with y equal to the mean of the GR values (or relative cell counts 
+in the case of the traditional dose response curve). For each flat fit, 
+GEC50 (or EC50) is set to 0, h_GR (or h) is set to 0.01, GRinf (or Einf) is
+set to the y value of the flat fit, and GR50 (or IC50) is set to +/-Inf 
+depending on whether GRinf (or Einf) is greater or less than .5. 
 
 The mandatory columns for inputData for Case "A" are the following as
 well as other grouping columns.
@@ -98,10 +108,11 @@ cell number)
 3. time - column with the time at which a cell count is observed
 
 All other columns will be treated as additional keys on which the data
-will be grouped (e.g. *cell_line*, *drug*, *replicate*)
+will be grouped (e.g. cell_line, drug, replicate)
 }
 \note{
-To see the underlying code, use (\code{getAnywhere(.GRlogistic_3u)}),
+To see the underlying code, use (\code{getAnywhere(.GRlogistic_3u)}), 
+(\code{getAnywhere(.IClogistic_3u)}),
 (\code{getAnywhere(.GRcalculate)}), and (\code{getAnywhere(.GRlogisticFit)})
 }
 \examples{
@@ -114,18 +125,17 @@ groupingVariables = c('cell_line','agent', 'perturbation','replicate',
 'time'))
 # Overview of SummarizedExperiment output data
 output1
-# View GR metrics table
-assay(output1)
-# View details of each experiment
-colData(output1)
-# View descriptions of each GR metric (or goodness of fit measure)
 \dontrun{
-View(rowData(output1))
-}
+# View GR metrics table
+View(GRgetMetrics(output1))
+# View descriptions of each metric (or goodness of fit measure)
+View(GRgetDefs(output1))
 # View table of original data (converted to style of Case A) with GR values
-metadata(output1)[[1]]
+# and relative cell counts
+View(GRgetValues(output1))
 # View vector of grouping variables used for calculation
-metadata(output1)[[2]]
+GRgetGroupVars(output1)
+}
 # Load Case C (example 4) input
 # Same data, different format
 data("inputCaseC")
@@ -137,10 +147,10 @@ case = "C")
 # Extract data tables and export to .tsv or .csv
 \dontrun{
 # Write GR metrics parameter table to tab-separated text file
-write.table(assay(output1), file = "filename.tsv", quote = FALSE,
+write.table(GRgetMetrics(output1), file = "filename.tsv", quote = FALSE,
 sep = "\\t", row.names = FALSE)
 # Write original data plus GR values to comma-separated file
-write.table(metadata(output1)[[1]], file = "filename.csv", quote = FALSE,
+write.table(GRgetValues(output1), file = "filename.csv", quote = FALSE,
 sep = ",", row.names = FALSE)
 }
 }
@@ -155,7 +165,7 @@ Sensitivity To Cancer Drugs". \emph{Nature Methods} 13.6 (2016): 521-527.
 }
 \seealso{
 See \code{\link{drm}} for the general logistic fit function that
-solves for the parameters GRinf, GEC50, and Hill slope. See
+solves for the parameters GRinf, GEC50, and h_GR. See
 \code{\link{drmc}} for
 options of this function. Use the functions \code{\link{GRdrawDRC}},
 \code{\link{GRbox}}, and \code{\link{GRscatter}} to create visualizations
