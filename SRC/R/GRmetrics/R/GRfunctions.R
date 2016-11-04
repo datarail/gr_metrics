@@ -6,14 +6,16 @@
   log2nn = with(inputData, log2(cell_count/cell_count__time0))
   log2nn_ctrl = with(inputData, log2(cell_count__ctrl/cell_count__time0))
   GR = 2^(log2nn/log2nn_ctrl) - 1
+  rel_cell_count = with(inputData, cell_count/cell_count__ctrl)
   input_edited = inputData
   input_edited$log10_concentration = log10(input_edited$concentration)
   input_edited$GR = GR
+  input_edited$rel_cell_count = rel_cell_count
   tmp<-input_edited[,groupingVariables, drop = FALSE]
   experimentNew = (apply(tmp,1, function(x) (paste(x,collapse=" "))))
   if(cap == TRUE) {
     input_edited$GR[input_edited$GR > 1] = 1
-    input_edited$GR[input_edited$GR < -1] = -1
+    input_edited$rel_cell_count[input_edited$rel_cell_count > 1] = 1
   }
   if(length(groupingVariables) > 0) {
     input_edited$experiment = as.factor(experimentNew)
@@ -27,13 +29,24 @@
                           cap = FALSE) {
   # declaring values NULL to avoid note on package check
   experiment = NULL
+  # GR curve parameters
   GEC50 = NULL
   GRinf = NULL
-  Hill = NULL
+  h_GR = NULL
+  # IC curve parameters
+  EC50 = NULL
+  Einf = NULL
+  h = NULL
   experiments = levels(inputData$experiment)
+  
   parameters = matrix(data = NA, ncol = 3, nrow = length(experiments))
   parameters = as.data.frame(parameters)
-  colnames(parameters) = c('Hill','GRinf','GEC50')
+  
+  parameters2 = matrix(data = NA, ncol = 3, nrow = length(experiments))
+  parameters2 = as.data.frame(parameters)
+  
+  colnames(parameters) = c('h_GR','GRinf','GEC50')
+  colnames(parameters2) = c('h', 'Einf', 'EC50')
   if(length(groupingVariables) > 0) {
     metadata = matrix(data = NA, ncol = length(groupingVariables),
                       nrow = length(experiments))
@@ -42,11 +55,19 @@
   } else {
     metadata = NULL
   }
-  pval = NULL
+  # More GR curve parameters
+  pval_GR = NULL
   GRmax = NULL
   GR_mean = NULL
   AOC = NULL
-  R_square = NULL
+  R_square_GR = NULL
+  
+  # More IC curve parameters
+  pval_IC = NULL
+  Emax = NULL
+  IC_mean = NULL
+  AUC = NULL
+  R_square_IC = NULL
   for(i in 1:length(experiments)) {
     # print(i)
     data_exp = inputData[inputData$experiment == experiments[i], ]
@@ -54,25 +75,32 @@
     l = length(concs)
     max_concs = data_exp[data_exp$concentration %in% concs[c(l,l-1)],]
     GRmax[i] = min(max_concs$GR, na.rm = TRUE)
+    Emax[i] = min(max_concs$rel_cell_count, na.rm = TRUE)
     #     metadata[i,] = data_exp[1,1:5]
     if(!is.null(metadata)) {
       metadata[i,] = data_exp[1,groupingVariables, drop = FALSE]
     }
     GR_mean[i] = mean(data_exp$GR, na.rm = TRUE)
-    #===== constrained fit ============
+    IC_mean[i] = mean(data_exp$rel_cell_count, na.rm = TRUE)
+    #===== constrained fit GR curve ============
     c = unique(data_exp$concentration)
     priors = c(2, 0.1, stats::median(c))
     lower = c(.1, -1, min(c)*1e-2)
     upper = c(5, 1, max(c)*1e2)
+    #===== constrained fit IC curve ============
+    priors_IC = c(2, 0.1, stats::median(c))
+    lower_IC = c(.1, 0, min(c)*1e-2)
+    upper_IC = c(5, 1, max(c)*1e2)
     if(dim(data_exp)[1] > 1) {
       controls = drc::drmc()
       controls$relTol = 1e-06
       controls$errorm = FALSE
       controls$noMessage = TRUE
       controls$rmNA = TRUE
+      # GR curve fitting
       output_model_new = try(drc::drm(
         GR~concentration, experiment, data=data_exp,
-        fct=drc::LL.3u(names=c('Hill','GRinf','GEC50')), start = priors,
+        fct=drc::LL.3u(names=c('h_GR','GRinf','GEC50')), start = priors,
         lowerl = lower, upperl = upper, control = controls,
         na.action = na.omit))
       if(class(output_model_new)!="try-error") {
@@ -87,77 +115,146 @@
         df2 = (length(na.omit(data_exp$GR)) - Npara + 1)
         f_value = ((RSS1-RSS2)/df1)/(RSS2/df2)
         f_pval = stats::pf(f_value, df1, df2, lower.tail = FALSE)
-        pval[i] = f_pval
-        R_square[i] = 1 - RSS2/RSS1
+        pval_GR[i] = f_pval
+        R_square_GR[i] = 1 - RSS2/RSS1
+      }
+      # IC curve fitting
+      output_model_new_IC = try(drc::drm(
+        rel_cell_count~concentration, experiment, data=data_exp,
+        fct=drc::LL.3u(names=c('h','Einf','EC50')), start = priors_IC,
+        lowerl = lower_IC, upperl = upper_IC, control = controls,
+        na.action = na.omit))
+      if(class(output_model_new_IC)!="try-error") {
+        parameters2[i,] = c(as.numeric(stats::coef(output_model_new_IC)))
+        # F-test for the significance of the sigmoidal fit
+        Npara = 3 # N of parameters in the growth curve
+        Npara_flat = 1 # F-test for the models
+        RSS2 = sum(stats::residuals(output_model_new_IC)^2, na.rm = TRUE)
+        RSS1 = sum((data_exp$rel_cell_count - mean(data_exp$rel_cell_count,
+                   na.rm = TRUE))^2, na.rm = TRUE)
+        df1 = (Npara - Npara_flat)
+        df2 = (length(na.omit(data_exp$rel_cell_count)) - Npara + 1)
+        f_value = ((RSS1-RSS2)/df1)/(RSS2/df2)
+        f_pval = stats::pf(f_value, df1, df2, lower.tail = FALSE)
+        pval_IC[i] = f_pval
+        R_square_IC[i] = 1 - RSS2/RSS1
       }
     }
     #==================================
 
     # Trapezoid rule for integration of GR_AOC
     GRavg = NULL
+    ICavg = NULL
     for(j in 1:length(concs)) {
       data_trapz = data_exp[data_exp$concentration == concs[j],]
       GRavg[j] = mean(data_trapz$GR, na.rm = TRUE)
+      ICavg[j] = mean(data_trapz$rel_cell_count, na.rm = TRUE)
     }
     AOC[i] = sum((1 - (GRavg[1:(length(GRavg)-1)]+GRavg[2:length(GRavg)])/2)*
                    diff(log10(concs), lag = 1), na.rm = TRUE)/
       (log10(concs[length(concs)]) - log10(concs[1]))
+    AUC[i] = sum(((ICavg[1:(length(ICavg)-1)]+ICavg[2:length(ICavg)])/2)*
+                   diff(log10(concs), lag = 1), na.rm = TRUE)/
+      (log10(concs[length(concs)]) - log10(concs[1]))
   }
 
+  parameters = cbind(parameters, parameters2)
   # Calculate GR50 from parameters
-  parameters$GR50 = with(parameters,GEC50*((1-GRinf)/(0.5-GRinf) - 1)^(1/Hill))
+  parameters$GR50 = with(parameters,GEC50*((1-GRinf)/(0.5-GRinf) - 1)^(1/h_GR))
   parameters$GRmax = GRmax
   parameters$GR_AOC = AOC
-  parameters$r2 = R_square
-  if(is.null(pval)) {pval = NA}
-  parameters$pval = pval
+  parameters$r2_GR = R_square_GR
+  # Calculate IC50 from parameters
+  parameters$IC50 = with(parameters,EC50*((1-Einf)/(0.5-Einf) - 1)^(1/h))
+  parameters$Emax = Emax
+  parameters$AUC = AUC
+  parameters$r2_IC = R_square_IC
+  
+  if(is.null(pval_GR)) {pval_GR = NA}
+  if(is.null(pval_IC)) {pval_IC = NA}
+  parameters$pval_GR = pval_GR
+  parameters$pval_IC = pval_IC
   # Re-order rows to match reference_output
   parameters$experiment = experiments
-  # Threshold for F-test pval
+  # Threshold for F-test pval_GR
   pcutoff = ifelse(force == FALSE, .05 , 1)
   for(i in 1:dim(parameters)[1]) {
-    if(!is.na(parameters$pval[i])) {
-      parameters$fit[i] = ifelse(parameters$pval[i] >= pcutoff |
+    # Flat or sigmoid fit for GR curve
+    if(!is.na(parameters$pval_GR[i])) {
+      parameters$fit_GR[i] = ifelse(parameters$pval_GR[i] >= pcutoff |
                                  is.na(parameters$GEC50[i]), "flat","sigmoid")
     } else {
-      parameters$fit[i] = ifelse(is.na(parameters$GEC50[i]), "flat", "sigmoid")
+      parameters$fit_GR[i] = ifelse(is.na(parameters$GEC50[i]), "flat",
+                                    "sigmoid")
+    }
+    # Flat or sigmoid fit for IC curve
+    if(!is.na(parameters$pval_IC[i])) {
+      parameters$fit_IC[i] = ifelse(parameters$pval_IC[i] >= pcutoff |
+                                      is.na(parameters$EC50[i]), "flat",
+                                    "sigmoid")
+    } else {
+      parameters$fit_IC[i] = ifelse(is.na(parameters$EC50[i]), "flat",
+                                    "sigmoid")
     }
   }
   # changed to above code to deal with NAs
-  #parameters$fit = with(parameters, ifelse(pval >= pcutoff | is.na(GEC50),
+  #parameters$fit_GR = with(parameters, ifelse(pval_GR >= pcutoff | is.na(GEC50),
   #"flat","sigmoid"))
-  # Add values for flat fits: GEC50 = 0, Hill = 0.01 and GR50 = +/- Inf
-  parameters$flat_fit = GR_mean
+  # Add values for flat fits: GEC50 = 0, h_GR = 0.01 and GR50 = +/- Inf
+  
+  parameters$flat_fit_GR = GR_mean
+  parameters$flat_fit_IC = IC_mean
   for(i in 1:dim(parameters)[1]) {
-    if(parameters$fit[i] == "flat") {
+    if(parameters$fit_GR[i] == "flat") {
       parameters$GEC50[i] = 0
-      parameters$Hill[i] = 0.01
-      parameters$GR50[i] = ifelse(parameters$flat_fit[i] > .5, Inf, -Inf)
-      parameters$GRinf[i] = parameters$flat_fit[i]
+      parameters$h_GR[i] = 0.01
+      parameters$GR50[i] = ifelse(parameters$flat_fit_GR[i] > .5, Inf, -Inf)
+      parameters$GRinf[i] = parameters$flat_fit_GR[i]
+    }
+  }
+  for(i in 1:dim(parameters)[1]) {
+    if(parameters$fit_IC[i] == "flat") {
+      parameters$EC50[i] = 0
+      parameters$h[i] = 0.01
+      parameters$IC50[i] = ifelse(parameters$flat_fit_IC[i] > .5, Inf, -Inf)
+      parameters$Einf[i] = parameters$flat_fit_IC[i]
     }
   }
   # Add GR50 = +/-Inf for any curves that don't reach GR = 0.5
   for(i in 1:dim(parameters)[1]) {
     if(is.na(parameters$GR50[i])) {
-      parameters$GR50[i] = ifelse(parameters$flat_fit[i] > .5, Inf, -Inf)
+      parameters$GR50[i] = ifelse(parameters$flat_fit_GR[i] > .5, Inf, -Inf)
+    }
+    if(is.na(parameters$IC50[i])) {
+      parameters$IC50[i] = ifelse(parameters$flat_fit_IC[i] > .5, Inf, -Inf)
     }
   }
   for(i in 1:dim(parameters)[1]) {
-    if(parameters$fit[i] == "sigmoid") {
-      parameters$flat_fit[i] = NA
+    if(parameters$fit_GR[i] == "sigmoid") {
+      parameters$flat_fit_GR[i] = NA
+    }
+    if(parameters$fit_IC[i] == "sigmoid") {
+      parameters$flat_fit_IC[i] = NA
     }
   }
-  parameters = parameters[,c('GR50','GRmax','GR_AOC','GEC50','GRinf','Hill',
-                             'r2','pval','experiment', 'fit','flat_fit')]
+  parameters = parameters[,c('GR50','GRmax','GR_AOC','GEC50','GRinf','h_GR',
+                             'r2_GR','pval_GR', 'fit_GR',
+                             'flat_fit_GR', 'IC50', 'Emax', 'AUC', 'EC50',
+                             'Einf', 'h', 'r2_IC', 'pval_IC', 'fit_IC',
+                             'flat_fit_IC','experiment')]
   if(!is.null(metadata)) {
     parameters = cbind(metadata, parameters)
   }
   return(parameters)
 }
 
-.GRlogistic_3u = function(c, GRinf, GEC50, Hill){
-  GRinf + (1 - GRinf)/(1 + (c/GEC50)^Hill)
-  }
+.GRlogistic_3u = function(c, GRinf, GEC50, h_GR){
+  GRinf + (1 - GRinf)/(1 + (c/GEC50)^h_GR)
+}
+
+.IClogistic_3u = function(c, Einf, EC50, h){
+  Einf + (1 - Einf)/(1 + (c/EC50)^h)
+}
 
 .trim_mean = function(x, percent) {
   x = x[!is.na(x)]
@@ -246,7 +343,8 @@
 #'
 #' This function takes in a dataset with information about concentration,
 #' cell counts over time, and additional grouping variables for a dose-response
-#' assay and calculates growth-rate inhibition (GR) metrics for each experiment
+#' assay and calculates growth-rate inhibition (GR) metrics as well as 
+#' traditional metrics (IC50, Emax, etc.) for each experiment
 #' in the dataset. The data must be in a specific format: either that specified
 #' by case "A" or case "C" described in the details below.
 #'
@@ -262,15 +360,16 @@
 #' @param force a logical value indicating whether to attempt to "force" a
 #' sigmoidal fit, i.e. whether to allow fits with F-test p-values greater
 #' than .05
-#' @param cap a logical value indicating whether to cap GR values in between
-#'  -1 and 1 (the range of the GR dose-response curve). If true, all GR values
-#'  greater than 1 will be set to 1 and all values less than -1 will be set
-#'  to -1.
-#' @return A SummarizedExperiment object containing GR metrics parameters
-#' (GR50, GRmax, etc.) as well as goodness of fit measures is returned. The
+#' @param cap a logical value indicating whether to cap GR values (or 
+#' relative cell counts) at 1. If true, all values greater than 1 will 
+#' be set to 1.
+#' @return A SummarizedExperiment object containing GR metrics 
+#' (GR50, GRmax, etc.) and traditional metrics (IC50, Emax, etc.) 
+#' as well as goodness of fit measures is returned. The
 #' object also contains, in its metadata, a table of the original data
-#' converted to the style of "Case A" (with calculated GR values for each row)
-#' and a vector of the grouping variables used for the calculation.
+#' converted to the style of "Case A" (with calculated GR values and relative 
+#' cell counts for each row) and a vector of the grouping variables used for 
+#' the calculation.
 #' @author Nicholas Clark
 #' @details
 #' Calculation of GR values is performed by the function \code{.GRcalculate}
@@ -280,20 +379,28 @@
 #' The fitting of the logistic curve is performed by the \code{.GRlogisticFit}
 #' function, which calls the \code{drm} function from the \code{drc} package
 #' to solve for the curve parameters. The GR curve fit function is
-#' given by f(c) = GRinf + (1 - GRinf)/(1 + (c/GEC50)^Hill) where c is
-#' concentration. The fit is performed under following constraints: Hill slope
+#' given by f(c) = GRinf + (1 - GRinf)/(1 + (c/GEC50)^h_GR) where c is
+#' concentration. The fit is performed under following constraints: h_GR 
 #' in [.1, 5], GRinf in [-1, 1], and GEC50 in [min(c)*1e-2, max(c)*1e2] (c is
-#' concentration). The initial conditions for the fitting algorithm are Hill
-#' slope = 2, GRinf = 0.1 and GEC50 = median(c).
+#' concentration). The initial conditions for the fitting algorithm are h_GR 
+#' = 2, GRinf = 0.1 and GEC50 = median(c). The fitting of the 
+#' traditional dose response curve is done using the same formula, 
+#' replacing GRinf with Einf, GEC50 with EC50, and h_GR with h. The fit is 
+#' performed on the relative cell counts instead of GR values. Also, since the 
+#' traditional dose response curve is bounded between 0 and 1 whereas the 
+#' GR dose response curve is bounded between -1 and 1, we restrict Einf to 
+#' the range [0, 1].
 #'
-#' The parameters of the curve for each experiment are fitted separately. An
+#' The parameters of the GR dose response curves (and traditional dose 
+#' response curves) for each experiment are fitted separately. An
 #' F-test is used to compare the sigmoidal fit to a flat line fit. If the
 #' p-value of the F-test is less than .05, the sigmoidal fit is accepted. If
 #' the p-value is greater than or equal to .05, a flat horizontal line fit is
-#' given, with y equal to the mean of the GR values. In the parameters data
-#' table, for each flat fit, GEC50 is set to 0, Hill is set to 0.01, GRinf is
-#' set to the y value of the flat fit (the mean of the GR values), and GR50 is
-#' set to +/-Inf depending on whether GRinf is greater or less than .5.
+#' given, with y equal to the mean of the GR values (or relative cell counts 
+#' in the case of the traditional dose response curve). For each flat fit, 
+#' GEC50 (or EC50) is set to 0, h_GR (or h) is set to 0.01, GRinf (or Einf) is
+#' set to the y value of the flat fit, and GR50 (or IC50) is set to +/-Inf 
+#' depending on whether GRinf (or Einf) is greater or less than .5. 
 #'
 #' The mandatory columns for inputData for Case "A" are the following as
 #' well as other grouping columns.
@@ -327,12 +434,13 @@
 #' 3. time - column with the time at which a cell count is observed
 #'
 #' All other columns will be treated as additional keys on which the data
-#' will be grouped (e.g. *cell_line*, *drug*, *replicate*)
+#' will be grouped (e.g. cell_line, drug, replicate)
 #' @note
-#' To see the underlying code, use (\code{getAnywhere(.GRlogistic_3u)}),
+#' To see the underlying code, use (\code{getAnywhere(.GRlogistic_3u)}), 
+#' (\code{getAnywhere(.IClogistic_3u)}),
 #' (\code{getAnywhere(.GRcalculate)}), and (\code{getAnywhere(.GRlogisticFit)})
 #' @seealso See \code{\link{drm}} for the general logistic fit function that
-#' solves for the parameters GRinf, GEC50, and Hill slope. See
+#' solves for the parameters GRinf, GEC50, and h_GR. See
 #' \code{\link{drmc}} for
 #' options of this function. Use the functions \code{\link{GRdrawDRC}},
 #' \code{\link{GRbox}}, and \code{\link{GRscatter}} to create visualizations
@@ -353,18 +461,17 @@
 #' 'time'))
 #' # Overview of SummarizedExperiment output data
 #' output1
-#' # View GR metrics table
-#' assay(output1)
-#' # View details of each experiment
-#' colData(output1)
-#' # View descriptions of each GR metric (or goodness of fit measure)
 #' \dontrun{
-#' View(rowData(output1))
-#' }
+#' # View GR metrics table
+#' View(GRgetMetrics(output1))
+#' # View descriptions of each metric (or goodness of fit measure)
+#' View(GRgetDefs(output1))
 #' # View table of original data (converted to style of Case A) with GR values
-#' metadata(output1)[[1]]
+#' # and relative cell counts
+#' View(GRgetValues(output1))
 #' # View vector of grouping variables used for calculation
-#' metadata(output1)[[2]]
+#' GRgetGroupVars(output1)
+#' }
 #' # Load Case C (example 4) input
 #' # Same data, different format
 #' data("inputCaseC")
@@ -376,10 +483,10 @@
 #' # Extract data tables and export to .tsv or .csv
 #' \dontrun{
 #' # Write GR metrics parameter table to tab-separated text file
-#' write.table(assay(output1), file = "filename.tsv", quote = FALSE,
+#' write.table(GRgetMetrics(output1), file = "filename.tsv", quote = FALSE,
 #' sep = "\t", row.names = FALSE)
 #' # Write original data plus GR values to comma-separated file
-#' write.table(metadata(output1)[[1]], file = "filename.csv", quote = FALSE,
+#' write.table(GRgetValues(output1), file = "filename.csv", quote = FALSE,
 #' sep = ",", row.names = FALSE)
 #' }
 #' @export
@@ -393,33 +500,43 @@ GRfit = function(inputData, groupingVariables, case = "A",
   gr_table = .GRcalculate(inputData, groupingVariables, cap, case)
   parameter_table = .GRlogisticFit(gr_table, groupingVariables, force, cap)
 
-  colData = parameter_table[ ,c(groupingVariables, 'fit', 'experiment')]
+  colData = parameter_table[ ,c(groupingVariables, 'fit_GR', 'fit_IC',
+                                'experiment')]
   rownames(colData) = colData$experiment
   colData = S4Vectors::DataFrame(colData)
-
-  Metrics = c("GR50","GRmax","GR_AOC","GEC50","GRinf","Hill",
-                "r2","pval","flat_fit")
-  assays = parameter_table[ , Metrics]
+  
+  Metric = c('GR50','GRmax','GR_AOC','GEC50','GRinf','h_GR',
+              'r2_GR','pval_GR','flat_fit_GR', 
+              'IC50', 'Emax', 'AUC', 'EC50','Einf', 'h', 
+              'r2_IC', 'pval_IC', 'flat_fit_IC')
+  assays = parameter_table[ , Metric]
   rownames(assays) = parameter_table$experiment
   assays = t(assays)
 
-  Description = c("The concentration at which GR(c) = 0.5",
-                  "The maximal effect of the drug (minimal GR value",
-                  "The 'Area Over the Curve' - The area between the line
-                  GR = 1 and the curve, similar to traditional AUC",
-                  "The concentration at half-maximal effect",
-                  "The Hill coefficient of the fitted curve, which reflects
-                  how steep the dose-response curve is",
-                  "The coefficient of determination - essentially how well
-                  the curve fits to the data points",
-                  "The p-value of the F-test comparing the fit of the curve
-                  to a horizontal line fit",
-                  "For data that doesn't significantly fit better to a curve
-                  than a horizontal line fit, the GR value of the flat line")
-  rowData = cbind(Metrics, Description)
-  rownames(rowData) = Metrics
+  Description = c(
+    "The concentration at which GR(c) = 0.5",
+    "The maximal effect of the drug (minimal GR value)",
+    "The 'Area Over the Curve' - The area between the line GR = 1 and the curve, similar to traditional AUC",
+    "The concentration at half-maximal effect (growth rate normalized)",
+    "The asymptotic effect of the drug (growth rate normalized)",
+    "The Hill coefficient of the fitted (GR) curve, which reflects how steep the (GR) dose response curve is",
+    "The coefficient of determination - essentially how well the (GR) curve fits to the data points",
+    "The p-value of the F-test comparing the fit of the (GR) curve to a horizontal line fit",
+    "For data that doesn't significantly fit better to a curve than a horizontal line fit, the y value (GR) of the flat line", 
+    "The concentration at which relative cell count = 0.5",
+    "The maximal effect of the drug (minimal relative cell count value)",
+    "The 'Area Under the Curve' - The area below the fitted (traditional) dose response curve",
+    "The concentration at half-maximal effect (not growth rate normalized)",
+    "The asymptotic effect of the drug (not growth rate normalized)",
+    "The Hill coefficient of the fitted (traditional) dose response curve, which reflects how steep the (traditional) dose response curve is",
+    "The coefficient of determination - essentially how well the (traditional) curve fits to the data points",
+    "The p-value of the F-test comparing the fit of the (traditional) curve to a horizontal line fit",
+    "For data that doesn't significantly fit better to a curve than a horizontal line fit, the y value (relative cell count) of the flat line"
+                  )
+  rowData = cbind(Metric, Description)
+  rownames(rowData) = Metric
   rowData = S4Vectors::DataFrame(rowData)
-  rowData$Metrics = as.character(rowData$Metrics)
+  rowData$Metric = as.character(rowData$Metric)
   rowData$Description = as.character(rowData$Description)
 
   output = SummarizedExperiment::SummarizedExperiment(assays = assays,

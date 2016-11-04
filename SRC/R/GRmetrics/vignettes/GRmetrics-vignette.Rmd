@@ -3,10 +3,8 @@ title: "GRmetrics: an R package for calculation and visualization of
 Growth Rate Metrics"
 author: "Nicholas Clark"
 date: "`r doc_date()`"
-package: "`r pkg_ver('BiocStyle')`"
 output: 
   BiocStyle::html_document
-css: custom.css
 vignette: >
   %\VignetteIndexEntry{GRmetrics: an R package for calculation and visualization of Growth Rate Metrics}
   %\VignetteEngine{knitr::rmarkdown}
@@ -50,9 +48,6 @@ The **GRmetrics** package can be installed through Bioconductor
 ```r
 source("http://bioconductor.org/biocLite.R")
 biocLite("GRmetrics")
-### if this doesn't work, use "devel" version of Bioconductor ###
-library(biocInstaller)
-useDevel()
 ```
 
 #References:
@@ -176,6 +171,21 @@ value(s).
 points used to make these boxplots and can color them according to another 
 grouping variable.
 
+The package also contains 4 accessor functions, which extract data from the 
+SummarizedExperiment object created by **GRfit**. These functions are: 
+**GRgetMetrics**, **GRgetDefs**, **GRgetValues**, and **GRgetGroupVars**.
+
+- **GRgetMetrics**  this function returns a table of GR metrics and 
+traditional metrics along with goodness of fit measures. It also identifies 
+each fit as flat or sigmoidal.
+- **GRgetDefs** this function returns a table containing the definition of 
+each GR metric, traditional metric, and goodness of fit measure calculated.
+- **GRgetValues** this function returns a table of the original data (in the 
+form of "Case A") with columns for GR values and relative cell counts.
+- **GRgetGroupVars**   this function returns a vector of the grouping 
+variables used to create the object. These are the variables in the dataset 
+that are not averaged over.
+
 # Examples
 
 ```{r, include = FALSE}
@@ -213,40 +223,33 @@ drc_output
 Review output table of GR metrics parameters
 
 ```{r}
-assay(drc_output)
-```
-
-View details of each experiment
-
-```{r}
-colData(drc_output)
+head(GRgetMetrics(drc_output))
 ```
 
 View descriptions of each GR metric (or goodness of fit measure)
 
 ```
-View(rowData(drc_output))
+View(GRgetDefs(drc_output))
 ```
 
 Review output table of GR values
 
 ```{r}
-head(metadata(drc_output)[[1]])
+head(GRgetValues(drc_output))
 ```
 
 View grouping variables used for calculation
 
 ```{r}
-metadata(drc_output)[[2]]
-
+GRgetGroupVars(drc_output)
 ```
 You can also export your results. Here are two examples:
 ```r
 # Write GR metrics parameter table to tab-separated text file
-write.table(assay(drc_output), file = "filename.tsv", quote = FALSE,
+write.table(GRgetMetrics(drc_output), file = "filename.tsv", quote = FALSE,
 sep = "\t", row.names = FALSE)
 # Write original data plus GR values to comma-separated file
-write.table(metadata(drc_output)[[1]], file = "filename.csv", quote = FALSE,
+write.table(GRgetValues(drc_output), file = "filename.csv", quote = FALSE,
 sep = ",", row.names = FALSE)
 ```
 
@@ -298,14 +301,18 @@ GRscatter(output1, 'GR50', 'agent', c('drugA','drugD'), 'drugB',
           plotly = FALSE)
 
 # Draw boxplots
-GRbox(output1, GRmetric ='GRinf', groupVariable = 'cell_line', 
+GRbox(output1, metric ='GRinf', groupVariable = 'cell_line', 
       pointColor = 'agent')
-GRbox(output1, GRmetric ='GRinf', groupVariable = 'cell_line', 
+GRbox(output1, metric ='GRinf', groupVariable = 'cell_line', 
       pointColor = 'agent',
       factors = c('BT20', 'MCF10A'))
-GRbox(output1, GRmetric ='GRinf', groupVariable = 'cell_line', 
+GRbox(output1, metric ='GRinf', groupVariable = 'cell_line', 
       pointColor = 'agent',
       factors = c('BT20', 'MCF10A'), plotly = FALSE)
+GRbox(output1, metric ='GR50', groupVariable = 'cell_line', 
+      pointColor = 'agent', wilA = 'BT20', wilB = c('MCF7', 'MCF10A'),
+      plotly = FALSE)
+
 ```
 
 #GR metric details
@@ -334,26 +341,57 @@ fitted with a sigmoidal curve:
 
     GR(c) = GRinf + (1-GRinf)/(1 + (c/(GEC50))^Hill )
 
-The following GR metrics are calculated: 
-- **GRinf** = GR(c->inf), which reflects asymptotic drug efficacy. 
-- Hill coefficient of the sigmoidal curve (**Hill**), which reflects how steep 
-the dose-response curve is.
-- **GEC50**, the drug concentration at half-maximal effect, which reflects the 
-potency of the drug.
+The following GR metrics are calculated:
+
 - **GR50**, the concentration at which the effect reaches a GR value of 0.5 
 based on interpolation of the fitted curve.
-- **GR_AOC**, the area over the dose-response curve, which is the integral of 
-*1-GR(c)* over the range of concentrations tested, normalized by the range of 
-concentration. 
+
 - **GRmax**, the effect at the highest tested concentration. Note that 
 *GRmax* can differ from *GRinf* if the dose-response does not reach its 
 plateau value.
 
-In addition, the scripts report the r-squared of the fit and evaluate the 
-significance of the sigmoidal fit based on an F-test. If the fit is not 
-significant (p < 0.05, or any arbitrary value), the sigmoidal fit is replaced 
-by a constant value (flat fit). The cutoff value for the p-value can be set 
-above 1 for bypassing the F-test. Additional information and considerations 
+- **GR_AOC**, the area over the dose-response curve, which is the integral of 
+*1-GR(c)* over the range of concentrations tested, normalized by the range of 
+concentration. 
+
+- **GEC50**, the drug concentration at half-maximal effect, which reflects the 
+potency of the drug.
+
+- **GRinf**, GR(c->inf), which reflects asymptotic drug efficacy. 
+
+- **h_GR**, The Hill coefficient of the fitted (GR) curve, which reflects how steep the dose response curve is
+
+- **r2_GR**,	The coefficient of determination - essentially how well the (GR) curve fits to the data points
+
+- **pval_GR**,	The p-value of the F-test comparing the fit of the (GR) curve to a horizontal line fit
+
+- **flat_fit_GR**,	For data that doesn't significantly fit better to a curve than a horizontal line fit (p > 0.05), the y value (GR) of the flat line
+
+The following traditional metrics are calculated:
+
+- **IC50**,	The concentration at which relative cell count = 0.5
+
+- **Emax**,	The maximal effect of the drug (minimal relative cell count value)
+
+- **AUC**, The 'Area Under the Curve' - The area below the fitted (traditional) dose response curve
+
+- **EC50**, The concentration at half-maximal effect (not growth rate normalized)
+
+- **Einf**, The asymptotic effect of the drug (not growth rate normalized)
+
+- **h**, The Hill coefficient of the fitted (traditional) dose response curve, which - reflects how steep the dose response curve is
+
+- **r2_IC**, The coefficient of determination - essentially how well the (traditional) curve fits to the data points
+
+- **pval_IC**, The p-value of the F-test comparing the fit of the (traditional) curve to a horizontal line fit
+
+- **flat_fit_IC**, For data that doesn't significantly fit better to a curve than a horizontal line fit (p > 0.05), the y value (relative cell count) of the flat line
+
+In addition to the metrics, the scripts report the r-squared of the fit and
+evaluate the significance of the sigmoidal fit based on an F-test. If the fit 
+is not significant (p > 0.05), the sigmoidal fit is replaced 
+by a constant value (flat fit). This can be circumvented by using the "force" 
+option in the *GRfit* function. Additional information and considerations 
 are described in the supplemental material of the manuscript referred above.
 
  
