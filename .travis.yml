@@ -1,5 +1,5 @@
 before_install:
- - chmod +x SRC
+ - chmod +x SRC/python/gr50/tests/test.py
 language: python
 python:
   - "2.6"
