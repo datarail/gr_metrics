@@ -16,4 +16,4 @@ install:
   - pip install SRC/python/
 #  - pip install -r requirements.txt
 # command to run tests
-script: gr50/tests/test.py
+script: SRC/python/gr50/tests/test.py
