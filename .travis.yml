@@ -40,7 +40,7 @@ install:
 #  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
 #  - python setup.py install
   - conda install pip
-  - pip install SRC/python coverage python-coveralls
+  - pip install SRC/python coverage python-coveralls doctest-ignore-unicode
 
 ### Run test
 script:
