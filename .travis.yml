@@ -1,7 +1,7 @@
 language: python
-### currently only testing on python 2.6 and 3.5
+### currently only testing on python 2.7 and 3.5
 python:
-  - "2.6"
+  - "2.7"
 #  - "2.7"
 #  - "3.2"
 #  - "3.3"
@@ -20,7 +20,7 @@ python:
 ### Setup anaconda
 before_install:
   - sudo apt-get update
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]]; then
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
