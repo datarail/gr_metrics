@@ -13,9 +13,9 @@ python:
 #  - "3.7-dev" # 3.7 development branch
 #  - "nightly" # currently points to 3.7-dev
 
-### un-comment to turn off email notifications
-#notifications:
-#  email: false
+### turn off email notifications
+notifications:
+  email: false
 
 ### Setup anaconda
 before_install:
@@ -32,6 +32,7 @@ before_install:
   ### The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
+
 ### Install packages
 install:
   - conda create --yes -n env_name python=$TRAVIS_PYTHON_VERSION pip numpy scipy pandas nose
@@ -43,13 +44,3 @@ install:
 ### Run test
 script:
    - nosetests SRC/python/gr50/tests/test.py
-
-### using Anaconda install, so no need to install numpy, scipy
-#install:
-#  - pip install numpy
-#  - pip install scipy
-#  - pip install pandas
-#  - pip install SRC/python/
-#  - pip install -r requirements.txt
-# command to run tests
-#script: nosetests SRC/python/gr50/tests/test.py
