@@ -15,9 +15,10 @@ python:
 #  - "nightly" # currently points to 3.7-dev
 # command to install dependencies
 install:
-  - pip install SRC/python/
-  - pip install pandas
   - pip install numpy
+  - pip install scipy
+  - pip install pandas
+  - pip install SRC/python/
 #  - pip install -r requirements.txt
 # command to run tests
 script: nosetests SRC/python/gr50/tests/test.py
