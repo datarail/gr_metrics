@@ -34,11 +34,9 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 ### Install packages
 install:
-  - conda info numpy
-  - conda info scipy
-  - conda info nose
-  - conda info pandas
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
+  - conda create --yes -n env_name python=$TRAVIS_PYTHON_VERSION pip numpy scipy pandas nose
+  - source activate env_name
+#  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
 #  - python setup.py install
   - conda install pip
   - pip install SRC/python
