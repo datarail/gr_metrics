@@ -34,6 +34,10 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 ### Install packages
 install:
+  - conda info numpy
+  - conda info scipy
+  - conda info nose
+  - conda info pandas
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
 #  - python setup.py install
   - conda install pip
