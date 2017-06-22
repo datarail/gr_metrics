@@ -40,7 +40,12 @@ install:
 #  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
 #  - python setup.py install
   - conda install pip
-  - pip install SRC/python
+  - pip install SRC/python coverage python-coveralls
+
 ### Run test
 script:
    - nosetests SRC/python/gr50/tests/test.py
+      -v --with-doctest --with-doctest-ignore-unicode
+      --with-coverage --cover-inclusive --cover-package=indra
+after_success:
+  coveralls
