@@ -46,6 +46,6 @@ install:
 script:
    - nosetests SRC/python/gr50/tests/test.py
       -v --with-doctest --with-doctest-ignore-unicode
-      --with-coverage --cover-inclusive --cover-package=indra
+      --with-coverage --cover-inclusive --cover-package=gr50
 after_success:
   coveralls
