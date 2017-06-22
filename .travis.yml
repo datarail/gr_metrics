@@ -19,9 +19,14 @@ python:
 
 ### Setup anaconda
 before_install:
-  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - sudo apt-get update
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.6" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
   - chmod +x miniconda.sh
-  - ./miniconda.sh -b
+  - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes conda
   ### The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
@@ -29,21 +34,15 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 ### Install packages
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose dateutil pandas statsmodels
-  # Coverage packages are on my binstar channel
-  - conda install --yes -c dan_blanchard python-coveralls nose-cov
-  - python setup.py install
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pandas
+#  - python setup.py install
   - conda install pip
   - pip install SRC/python
-# Run test
+### Run test
 script:
-#  - nosetests --with-cov --cov PACKAGE_NAME --cov-config .coveragerc --logging-level=INFO
    - nosetests SRC/python/gr50/tests/test.py
-# Calculate coverage
-#after_success:
-#  - coveralls --config_file .coveragerc
 
-# using Anaconda install, so no need to install numpy, scipy
+### using Anaconda install, so no need to install numpy, scipy
 #install:
 #  - pip install numpy
 #  - pip install scipy
