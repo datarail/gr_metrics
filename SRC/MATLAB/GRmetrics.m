@@ -9,9 +9,9 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, varargin)
 %   - input_time0:  file name for the time0 data (optional, see below)
 %
 % optional input parameters (property/value pairs):
-%   - 'pcutoff':    cutoff value for the flat fit using the F-test 
+%   - 'pcutoff':    cutoff value for the flat fit using the F-test
 %                       (default is pcutoff=0.05)
-%   - 'collapseKeys': column header (key) to average the data on 
+%   - 'collapseKeys': column header (key) to average the data on
 %                       (default is none)
 %
 % input files:
@@ -48,7 +48,7 @@ function [t_GRvalues, t_GRmetrics] = GRmetrics(output, input_data, varargin)
 %   - t_GRmetrics contains the results of the sigmoidal fit for all set of
 %       keys found in the treated measures. The columns of the t_GRmetrics
 %       are the keys and the fitted parameters and values:
-%       'GR50' 'GRmax' 'GR_AUC' 'EC50' 'GRinf' 'Hill' 'r2' 'pval'
+%       'GR50' 'GRmax' 'GR_AOC' 'GEC50' 'GRinf' 'h_GR' 'r2_GR' 'pval_GR'
 %       obtained from the sigmoidal fit.
 %   NOTE: The quality of the fit is tested against a flat fit and if the
 %       sigmoidal fit is not significant (p>0.05), the flat fit is prefered.
@@ -94,28 +94,28 @@ t_data = readtable(input_data,'filetype','text','delimiter','\t');
 
 % --> change to a real error handling MH 16/1/21
 assert(all(ismember({'cell_count', 'concentration'}, t_data.Properties.VariableNames)), ...
-    'Need the columns ''cell_count'', ''concentration'' in the data') 
-    
+    'Need the columns ''cell_count'', ''concentration'' in the data')
+
 if any(~ismember({'cell_count__ctrl' 'cell_count__time0'}, t_data.Properties.VariableNames))
     % need to assign the controls to each condition
-    
+
     if caseB
         % case of multiple input files
-        
+
         % endpoint controls
         t_ctrl = readtable(input_ctrl,'filetype','text','delimiter','\t');
         % time0 controls
         t_time0 = readtable(input_time0,'filetype','text','delimiter','\t');
-        
+
         % match the controls with the data
         t_data = add_controls(t_data, t_ctrl, t_time0);
-        
+
     else
         % case of one long with with the controls:
         %   compute the controls and assign them to the measured data
         t_data = assign_controls(t_data);
     end
-    
+
 end
 
 %% collapse the data (if neeeded)

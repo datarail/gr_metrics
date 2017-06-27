@@ -1,18 +1,19 @@
 function t_out = evaluate_GRmetrics(t_in, pcutoff)
 % t_out = evaluate_GRmetrics(t_in, pcutoff)
-%   evalute the GR metrics (GR50, GRinf, ...) on a table with columns: 
+%   evalute the GR metrics (GR50, GRinf, ...) on a table with columns:
 %   GRvalue and concentration. All columns except 'cell_count*' will be
-%   considered to be keys. 
-%   pcutoff is used for the F-test of the sigmoidal fit 
+%   considered to be keys.
+%   pcutoff is used for the F-test of the sigmoidal fit
 
 % --> change to a real error handling MH 16/1/21
+% standardize metric names - NC
 assert(all(ismember({'GRvalue', 'concentration' }, ...
-    t_in.Properties.VariableNames)), ... 
-    'Need the columns ''GRvalue'', ''concentration'' in the data') 
-    
+    t_in.Properties.VariableNames)), ...
+    'Need the columns ''GRvalue'', ''concentration'' in the data')
+
 keys = setdiff(t_in.Properties.VariableNames, {'concentration', ...
     'cell_count' 'cell_count__ctrl' 'cell_count__time0' 'GRvalue'}, 'stable');
-MetricsNames = {'GR50' 'GRmax' 'GR_AUC' 'EC50' 'GRinf' 'Hill' 'r2' 'pval'};
+MetricsNames = {'GR50' 'GRmax' 'GR_AOC' 'GEC50' 'GRinf' 'h_GR' 'r2_GR' 'pval_GR'};
 
 % convert string keys to categorical
 for ik = keys
@@ -31,15 +32,15 @@ for i=1:height(t_out)
     if mod(i,floor(height(t_out)/10))==0
         fprintf('%.0f%% ', 100*i/height(t_out))
     end
-    
+
     idx = table_equality(t_out(i,:), t_in, keys);
-    
+
     if sum(idx)<=4 && warn_flag
         warning('less than 4 concentrations for some conditions --> no fit')
         warn_flag = false;
     end
     GRmetrics = fit_dose_response(t_in(idx,:), pcutoff);
-    
+
     for iM = MetricsNames, t_out.(iM{:})(i) = GRmetrics.(iM{:}); end
 end
 
@@ -72,23 +73,23 @@ GRmetrics = struct( ...
     'GR50', NaN, ...
     'GRmax', min(g(end-[1 0])), ... % robust minimum on the last 2 concentrations
     'GRinf', NaN, ...
-    'Hill', NaN, ...
-    'EC50', NaN, ...
-    'r2', NaN, ...
-    'GR_AUC', sum( (1-(g(2:end)+g(1:(end-1)))/2) .* diff(log10(c))) / ...
-    diff(log10(c([1 end]))) ... % normalized version of the AUC
+    'h_GR', NaN, ...
+    'GEC50', NaN, ...
+    'r2_GR', NaN, ...
+    'GR_AOC', sum( (1-(g(2:end)+g(1:(end-1)))/2) .* diff(log10(c))) / ...
+    diff(log10(c([1 end]))) ... % normalized version of the GR_AOC
     );
 
 if length(c)<=4
     return
 end
 
-% parameters : GRinf  EC50   Hill
+% parameters : GRinf  GEC50   h_GR
 priors = [.1 median(c) 2];
 ranges = [
     -1 1                    % GRinf
-    min(c)*1e-2 max(c)*1e2  % EC50
-    .1 5                    % Hill
+    min(c)*1e-2 max(c)*1e2  % GEC50
+    .1 5                    % h_GR
     ]';
 
 % fit will be perfomed in the log10 domain (more precise)
@@ -109,38 +110,38 @@ RSS1 = gof_flat.sse;
 df1 = (Npara -Npara_flat);
 df2 = (length(g) -Npara +1);
 F = ( (RSS1-RSS2)/df1 )/( RSS2/df2 );
-GRmetrics.pval = 1-fcdf(F, df1, df2);
+GRmetrics.pval_GR = 1-fcdf(F, df1, df2);
 
 
-if GRmetrics.pval>=pcutoff || isnan(RSS2) % nonsiggnificant or failed fit
+if GRmetrics.pval_GR >= pcutoff || isnan(RSS2) % nonsiggnificant or failed fit
     % flat fit parameters
     if fit_res_flat.a > .5
         GRmetrics.GR50 = +Inf;
     else
         GRmetrics.GR50 = -Inf;
     end
-    GRmetrics.EC50 = 0; % such that sigmoidal fit function can be evaluated
-    GRmetrics.Hill = .01; % arbitrary low (but not equal to 0)
+    GRmetrics.GEC50 = 0; % such that sigmoidal fit function can be evaluated
+    GRmetrics.h_GR = .01; % arbitrary low (but not equal to 0)
     GRmetrics.GRinf = fit_res_flat.a; % robust minimum on the last 2 concentrations
-    GRmetrics.r2 = gof_flat.rsquare;
-    
+    GRmetrics.r2_GR = gof_flat.rsquare;
+
 else % significant sigmoidal fit
-    
+
     % fit parameters
     GRmetrics.GRinf = fit_result.a;
-    GRmetrics.Hill = fit_result.c;
-    GRmetrics.EC50 = 10^-fit_result.b;
-    GRmetrics.r2 = gof.rsquare;
-    
+    GRmetrics.h_GR = fit_result.c;
+    GRmetrics.GEC50 = 10^-fit_result.b;
+    GRmetrics.r2_GR = gof.rsquare;
+
     % interpolation for GR50; allow extrapolation up to one order of magnitude
     % above and below measured range
     extrapolrange = 10;
     xc = 10.^[log10(min(c)/extrapolrange) log10(max(c)*extrapolrange)];
-    
+
     fit_growth = fit_result(xc);
-    GRmetrics.GR50 = GRmetrics.EC50*( ( ( (1-GRmetrics.GRinf)/(.5-GRmetrics.GRinf) )-1) ...
-        ^(1/GRmetrics.Hill)); % solving the sigmoidal function to get GR(GR50)=0.5
-    
+    GRmetrics.GR50 = GRmetrics.GEC50*( ( ( (1-GRmetrics.GRinf)/(.5-GRmetrics.GRinf) )-1) ...
+        ^(1/GRmetrics.h_GR)); % solving the sigmoidal function to get GR(GR50)=0.5
+
     if any(fit_growth<.5) && any(fit_growth>.5) % inter/extrapolation is fine
     elseif all(fit_growth>.5)
         if GRmetrics.GR50>extrapolrange*max(c) || imag(GRmetrics.GR50)~=0
@@ -154,7 +155,7 @@ else % significant sigmoidal fit
         GRmetrics.GR50 = NaN; % this should not occur
         warning('undefined GR fit')
     end
-    
+
 end
 end
 
@@ -180,5 +181,3 @@ fitopt = fitoptions('Method','NonlinearLeastSquares',...
 f = fittype('a+0*x','options',fitopt);
 [fit_result, gof] = fit(c, g,f);
 end
-
-

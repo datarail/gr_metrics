@@ -281,22 +281,22 @@ def gr_metrics(data, alpha=0.05):
     * GR50: Dose at which GR reaches 0.5.
     * GRmax: Maximum observed GR effect (minimum value).
     * GR_AOC: Area over the curve of observed data points. Mathematically this
-      is calculated as 1-GR so that increasing gr_aoc values correspond to
+      is calculated as 1-GR so that increasing GR_AOC values correspond to
       increasing agent effect. Also note the x-axis (concentration) values are
       log10-transformed, and the entire area is normalized by the width
       (difference between maximum and minimum concentration).
-    * GEC50: Dose at which GR is halfway between 1 and gr_inf.
+    * GEC50: Dose at which GR is halfway between 1 and GRinf.
     * GRinf: Extrapolated GR value at infinite dose.
-    * h_GR: Hill slope of fitted logistic curve.
-    * r2: R squared of fitted logistic curve.
-    * pval: P-value from the F-test (see below).
+    * h_GR: Hill slope of fitted GR logistic curve.
+    * r2_GR: R squared of fitted GR logistic curve.
+    * pval_GR: P-value from the F-test for the GR logistic curve (see below).
 
     The input data for each experiment are fitted with a logistic curve. An
     F-test is then performed with the null hypothesis being that there is no
     dose response, i.e. the data can be fitted well with a straight horizontal
     line. If the null hypothesis is not rejected, the returned metrics are
-    chosen such that the logistic curve determined by gr_inf, gec50 and slope is
-    equivalent to the horizontal line fit, and gr50 is infinite (potentially
+    chosen such that the logistic curve determined by GRinf, GEC50 and h_GR is
+    equivalent to the horizontal line fit, and GR50 is infinite (potentially
     positive *or* negative).
 
     Parameters
@@ -322,20 +322,20 @@ def gr_metrics(data, alpha=0.05):
     ...            columns=['drug', 'concentration', 'GRvalue'])
     >>> print gr_metrics(data)
       drug      GR50   GRmax    GR_AOC     GEC50     GRinf      h_GR  \\
-    0    A  0.114025  0.0188  0.481125  0.110411  0.018109  1.145262   
-    1    B       inf  0.9360  0.026375  0.000000  0.971000  0.010000   
+    0    A  0.114025  0.0188  0.481125  0.110411  0.018109  1.145262
+    1    B       inf  0.9360  0.026375  0.000000  0.971000  0.010000
     <BLANKLINE>
-                 r2      pval  
-    0  9.985790e-01  0.000054  
-    1 -1.243450e-14  1.000000  
+              r2_GR   pval_GR
+    0  9.985790e-01  0.000054
+    1 -1.243450e-14  1.000000
     """
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
                            "to use this function")
     non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
                     'cell_count__time0', 'GRvalue'))
-    metric_columns = ['GR50', 'GRmax', 'GR_AOC', 'GEC50', 'GRinf', 'h_GR', 'r2',
-                      'pval']
+    metric_columns = ['GR50', 'GRmax', 'GR_AOC', 'GEC50', 'GRinf', 'h_GR', 'r2_GR',
+                      'pval_GR']
     keys = list(set(data.columns) - non_keys)
     gb = data.groupby(keys)
     data = [_mklist(k) + _metrics(v, alpha) for k, v in gb]
