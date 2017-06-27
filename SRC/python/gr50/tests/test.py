@@ -21,7 +21,7 @@ def output_test():
 
     print(metrics_python.columns)
     print(metrics_matlab.columns)
-    
+
     # Determine key columns and sort both dataframes by those columns. Since
     # this script is expected to work on arbitrary inputs, we need to "sniff"
     # out which columns are the keys (otherwise we'd need that as an input too).
@@ -41,6 +41,8 @@ def output_test():
         # Compute log10 of GR50 and drop original column.
         df.insert(first_data_col_index, 'log10_GR50', np.log10(df['GR50']))
         del df['GR50']
+        df.insert(first_data_col_index, 'log10_GEC50', np.log10(df['GEC50']))
+        del df['GEC50']
 
     metrics = [c for c in metrics_python if c not in keys]
     errs = ['err_' + m for m in metrics]
@@ -51,8 +53,10 @@ def output_test():
         err = (1 - metrics_python[m] / metrics_matlab[m])
         error[e] = err.fillna(0)
     rejects = np.isinf(metrics_python.log10_GR50)
+    rejects2 = np.isinf(metrics_python.log10_GEC50)
     # Sanity check to make sure both versions pass/reject the same things.
     assert (rejects == np.isinf(metrics_matlab.log10_GR50)).all()
+    assert (rejects2 == np.isinf(metrics_matlab.log10_GEC50)).all()
 
     # Keep pandas from wrapping.
     pd.set_option('display.width', None)
@@ -68,7 +72,7 @@ def output_test():
            "metric:")
     test2 = error[(abs(error[errs]) > 0.1).any(axis=1)]
     print(test2)
-    
+
     # Insert rows at the top with median and IQR of each error column.
     median = error[errs].median()
     iqr = np.subtract(*np.percentile(error[errs], [75, 25], axis=0))
@@ -77,4 +81,5 @@ def output_test():
     error.sort_index(inplace=True)
     # Passes if none of the metrics differ by 10%
     # Just an example of a passing test.
+    assert test.shape[0] == 0
     assert test2.shape[0] == 0
