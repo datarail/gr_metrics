@@ -12,9 +12,7 @@ def output_test():
     # Read the matlab output.
     Dirfile = os.path.abspath(os.path.join(Dir,'OUTPUT/matlab_input1_GRmetrics.tsv'))
     metrics_matlab = pd.read_csv(Dirfile, delimiter='\t')
-    metrics_matlab.columns = metrics_matlab.columns.str.replace('GR_AUC','GR_AOC')
-    metrics_matlab.columns = metrics_matlab.columns.str.replace('EC50','GEC50')
-    metrics_matlab.columns = metrics_matlab.columns.str.replace('Hill','h_GR')
+
     # Compute the GR metrics from the data.
     gr_values = gr50.compute_gr(df)
     metrics_python = gr50.gr_metrics(gr_values)
@@ -81,5 +79,4 @@ def output_test():
     error.sort_index(inplace=True)
     # Passes if none of the metrics differ by 10%
     # Just an example of a passing test.
-    assert test.shape[0] == 0
     assert test2.shape[0] == 0

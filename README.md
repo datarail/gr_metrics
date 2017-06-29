@@ -1,4 +1,6 @@
+<!---
 [![Build Status](https://travis-ci.org/NicholasClark/gr_metrics.svg?branch=master)](https://travis-ci.org/NicholasClark/gr_metrics)
+-->
 
 # Tools and scripts to evaluate GR values and metrics
 Companion of the manuscript:
