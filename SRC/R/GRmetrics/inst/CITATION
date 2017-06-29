@@ -1,0 +1,23 @@
+citHeader("To cite the GRmetrics R package and/or the GRcalculator application in publications use:")
+
+citEntry(entry = "Misc",
+title = "GRcalculator: an online tool for calculating and mining drug response data",
+author = c(person("Nicholas", "Clark"),
+person("Marc", "Hafner"),
+person("Michal", "Kouril"),
+person("Jeremy", "Muhlich"),
+person("Mario", "Niepel"),
+person("Elizabeth", "Williams"),
+person("Peter", "Sorger"),
+person("Mario", "Medvedovic")
+),
+year = 2016,
+school = c("University of Cincinnati", "Harvard Medical School"),
+doi = "10.6084/m9.figshare.4244408.v1",
+url = c("http://www.grcalculator.org/"), 
+textVersion = "Clark N, Hafner M, Kouril M, Muhlich J, Niepel M, Williams E, Sorger P and Medvedovic M (2016). 'GRcalculator: an online tool for calculating and mining drug response data.'
+doi: 10.6084/m9.figshare.4244408.v1 (URL: http://doi.org/10.6084/m9.figshare.4244408.v1),
+<URL: http://www.grcalculator.org/>."
+)
+
+citFooter("We have invested our time and effort in creating GRmetrics and the GRcalculator application, we would be grateful if you could cite it when using it in your analysis.")

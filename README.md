@@ -1,3 +1,7 @@
+<!---
+[![Build Status](https://travis-ci.org/NicholasClark/gr_metrics.svg?branch=master)](https://travis-ci.org/NicholasClark/gr_metrics)
+-->
+
 # Tools and scripts to evaluate GR values and metrics
 Companion of the manuscript:
 **Metrics of drug sensitivity and resistance based on growth rate inhibition correct for the confounding effects of variable division rates**
