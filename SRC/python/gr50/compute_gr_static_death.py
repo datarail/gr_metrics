@@ -25,9 +25,11 @@ def compute_gr_static_death(data, d_ct='Deadcount', x_ct='Cellcount', d_0='Day0D
     dead_ratio_ctrl = np.maximum(data[d_0t] - data[d_0], 1) / (data[x_0t] - data[x_0])
     gr = np.log2(data[x_ct] / data[x_0])
     gr_ctrl = np.log2(data[x_0t] / data[x_0])
-    GR_s = np.power(
-        2, ((1 + dead_ratio) * gr / ((1 + dead_ratio_ctrl) * gr_ctrl))) - 1
-    GR_d = np.power(2, (((dead_ratio_ctrl) * gr_ctrl - (dead_ratio) * gr) / Time)) - 1
+
+    def exp_2_func(x):
+        return np.power(2,x)-1
+    GR_s = exp_2_func((1 + dead_ratio) * gr / ((1 + dead_ratio_ctrl) * gr_ctrl))
+    GR_d = exp_2_func(2, (((dead_ratio_ctrl) * gr_ctrl - (dead_ratio) * gr) / Time))
     processed_data = data.copy()
     processed_data['GR_s'] = GR_s
     processed_data['GR_d'] = GR_d
