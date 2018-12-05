@@ -307,6 +307,12 @@ def gr_metrics(data, alpha=0.05, gr_value='GRvalue',
         Input data on which to compute the metrics.
     alpha : Optional[float]
         Significance level for the F-test.
+    gr_value : Optional[str]
+        Name of column containing GR values on which metrics are to be computed.
+        Default is 'GRvalue'. Additional options include 'GR_static' and 'GR_toxic'.
+    keys : list of str
+        Name of columns by which to group the input dataframe.
+        Default is ['cell_line', 'agent', 'timepoint'].
 
     Returns
     -------
@@ -362,14 +368,14 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
 
     Parameters
     ----------
-    data : pandas dataframe
+    data : pandas.DataFrame
        Input counts table on which to compute GR static and toxic values.
     time_col : Optional[str]
-       Name of column in input dataframe containing duration of drug treatment. Default is timepoint
+       Name of column in input dataframe containing duration of drug treatment. Default is 'timepoint'.
 
     Returns
     -------
-    x : pandas dataframe
+    x : pandas.DataFrame
        GR_static and GR_toxic values appended to input dataframe
     
     """
@@ -378,7 +384,7 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
     # then increase estimate of dead cell count such that total number of cells is
     # equal to 95% of time 0 control.
     mc = ((x.dead_count + x.cell_count) <
-          0.95 * (x.cell_count__time0 + x.dead_count__time0))
+          0.95 * (x.cell_count__time0 + x.dead_count__time0))  
     
     x.loc[mc, 'dead_count'] = np.maximum(x.loc[mc, 'dead_count'],
                                          (x.loc[mc, 'cell_count__time0'] +
@@ -386,11 +392,13 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
                                           np.floor(.95 * x.loc[mc, 'cell_count']) +
                                           1)
                                          )
+    print("{} wells or conditions have 5% fewer cells than time0 control,"
+          "estimate of dead_count has been increased to compensate.".format(len(x[mc])))
 
     # If total number of cells (live+dead) is more than 115% of untreated control,
     # then reduce estimate of dead cell count such that total cells is equal to
     # 115% of untreated control.
-    hd = ((x.role != 'ctl_vehicle') &
+    hd = ((x.role != 'negative_control') &
           ((x.dead_count + x.cell_count) >
            1.15 * (x.dead_count__ctrl + x.cell_count__ctrl))
           )
@@ -401,6 +409,8 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
                                            np.ceil(1.15 * x.loc[hd, 'cell_count']) -
                                            1)
                                           )
+    print("{} wells or conditions have too many cells relative to untreated control,"
+          "estimate of dead_count has been reduced to compensate.".format(len(x[hd])))
     
     d_ratio = np.maximum(x.dead_count - x.dead_count__time0, 1)/\
         (x.cell_count - x.cell_count__time0)
