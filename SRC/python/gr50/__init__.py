@@ -262,7 +262,8 @@ def _metrics(df, alpha, gr_value='GRvalue'):
     aoc = np.trapz(1 - df[gr_value], log_conc) / aoc_width
     return [gr50, max_, aoc, gec50, inf, slope, r2, pval]
 
-def gr_metrics(data, alpha=0.05, gr_value='GRvalue'):
+def gr_metrics(data, alpha=0.05, gr_value='GRvalue',
+               keys=['cell_line', 'agent', 'timepoint']):
     """Compute Growth Response metrics for an entire dataset.
 
     The input dataframe must contain a column named 'concentration' with the
@@ -333,11 +334,11 @@ def gr_metrics(data, alpha=0.05, gr_value='GRvalue'):
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
                            "to use this function")
-    non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
-                    'cell_count__time0', 'GRvalue'))
+    #non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
+    #               'cell_count__time0', 'GRvalue'))
     metric_columns = ['GR50', 'GRmax', 'GR_AOC', 'GEC50', 'GRinf', 'h_GR', 'r2_GR',
                       'pval_GR']
-    keys = list(set(data.columns) - non_keys)
+    #keys = list(set(data.columns) - non_keys)
     gb = data.groupby(keys)
     data = [_mklist(k) + _metrics(v, alpha, gr_value) for k, v in gb]
     df = pd.DataFrame(data, columns=keys + metric_columns)
