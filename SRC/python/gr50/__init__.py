@@ -225,6 +225,7 @@ def _mklist(values):
         return [values]
 
 def _metrics(df, alpha):
+    df = df.sort_values(by='concentration')
     conc_min = df.concentration.min() / 100
     conc_max = df.concentration.max() * 100
     bounds = np.array([[-1, 1], np.log10([conc_min, conc_max]), [0.1, 5]])
