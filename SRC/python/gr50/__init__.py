@@ -357,6 +357,7 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
     * dead_count__ctrl: Total number of dead cells in the no-perturbation control.
     * timepoint : duration of drug treatment per column. The column name can be passed as an argument to
                  allow flexibility of passing time in any units (typically hours or days).
+    * role : column that specifies if the sample is 'negative_control', 'positive_control', or 'treatment'.
 
     Parameters
     ----------
