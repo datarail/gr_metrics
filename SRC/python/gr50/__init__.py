@@ -343,7 +343,6 @@ def gr_metrics(data, alpha=0.05):
     return df
 
 
-
 def compute_gr_static_toxic(data, time_col='timepoint'):
     """
     Computes gr_static and gr_toxic values for a given dataframe.
@@ -413,13 +412,13 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
         ((1 + d_ratio__ctrl) * gr__ctrl)
         ) - 1
 
-    gr_death = 2 ** (
+    gr_toxic = 2 ** (
         (d_ratio__ctrl * gr__ctrl - d_ratio * gr)/
          x[time_col]
         ) - 1
 
     x['GR_static'] = gr_static
-    x['GR_toxic'] = gr_death
+    x['GR_toxic'] = gr_toxic
     
     return x
 
