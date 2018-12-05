@@ -431,7 +431,44 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
 
     x['GR_static'] = gr_static
     x['GR_toxic'] = gr_toxic
+
+    # If number of live cells post treatment ~= time 0 control, analytical solution is not permissive.
+    # Hence GR values are computed numerically using Taylor expansion
+    fe = (np.abs(x.cell_count - x.cell_count__time0)/x.cell_count) < 1e-10
+    if np.any(fe):
+         print("{} wells or conditions have live cell counts approximately equal to time0 control,"
+               "therefore GR static and toxic values computed numerically using Taylor expansion.".format(len(x[fe]))
+               )
+         x_gr = pd.DataFrame(list(zip(gr, gr__ctrl , d_ratio__ctrl)),
+                             columns=['gr', 'gr__ctrl', 'd_ratio__ctrl'])
+         x_gr['d_ratio__gr'] = 0
+         a = np.array(x.loc[fe, 'cell_count'])#.reshape(len(a), 1)
+         a = a.reshape(len(a), 1)
+         b = np.array(x.loc[fe, 'cell_count__time0'])
+         b = b.reshape(len(b), 1)
+         nterms = 35 # Number of terms in Taylor expansion series
+         
+         x_gr.loc[fe, 'd_ratio__gr'] = (
+             np.maximum(x.loc[fe, 'dead_count'] - x.loc[fe, 'dead_count__time0'], 1).multiply(
+                 (1/b + np.diag(
+                     np.dot(
+                         np.power(np.matlib.repmat((-1) * (a-b), 1, nterms),
+                                  np.matlib.repmat(range(1, nterms+1), len(a), 1), dtype=np.longdouble),
+                         (np.matlib.repmat(b, 1, nterms) * np.matlib.repmat(range(1, nterms+1), len(b), 1)).T
+                         )
+                     ).reshape(len(b), 1)
+                  ).flatten()
+                 )
+             )
+
+         x.loc[fe, 'GR_static'] = 2 ** (
+             (x_gr.loc[fe, 'gr'] + x_gr.loc[fe, 'd_ratio__gr'])/
+             ((1 + x_gr.loc[fe, 'd_ratio__ctrl']) * x_gr.loc[fe, 'gr__ctrl'])
+             ) - 1
+
+         x.loc[fe, 'GR_toxic'] = 2 ** (
+             ((x_gr.loc[fe, 'd_ratio__ctrl'] * x_gr.loc[fe, 'gr__ctrl'] - x_gr.loc[fe, 'd_ratio__gr'])/
+              x.loc[fe, time_col])
+             ) - 1      
     
     return x
-
-
