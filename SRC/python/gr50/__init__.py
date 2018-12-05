@@ -224,15 +224,15 @@ def _mklist(values):
     else:
         return [values]
 
-def _metrics(df, alpha):
+def _metrics(df, alpha, gr_value='GRvalue'):
     df = df.sort_values(by='concentration')
     conc_min = df.concentration.min() / 100
     conc_max = df.concentration.max() * 100
     bounds = np.array([[-1, 1], np.log10([conc_min, conc_max]), [0.1, 5]])
     prior = np.array([0.1, np.log10(np.median(df.concentration)), 2])
-    logistic_result = _fit(logistic, df.concentration, df.GRvalue,
+    logistic_result = _fit(logistic, df.concentration, df[gr_value],
                            prior, bounds)
-    flat_result = _fit(_flat, df.concentration, df.GRvalue,
+    flat_result = _fit(_flat, df.concentration, df[gr_value],
                        prior[[0]], bounds[[0]])
     pval = _calculate_pval(logistic_result, flat_result, len(df.concentration))
     if pval > alpha or not logistic_result.success:
@@ -246,23 +246,23 @@ def _metrics(df, alpha):
         gec50 = 0.0
         # Must be non-zero or the logistic function will error.
         slope = 0.01
-        r2 = _rsquare(flat_result.x, _flat, df.concentration, df.GRvalue)
+        r2 = _rsquare(flat_result.x, _flat, df.concentration, df[gr_value])
     else:
         gr50 = _logistic_inv(0.5, logistic_result.x)
         inf = logistic_result.x[0]
         gec50 = 10 ** logistic_result.x[1]
         slope = logistic_result.x[2]
-        r2 = _rsquare(logistic_result.x, logistic, df.concentration, df.GRvalue)
+        r2 = _rsquare(logistic_result.x, logistic, df.concentration, df[gr_value])
     # Take the minimum across the highest 2 doses to minimize the effect of
     # outliers (robust minimum).
-    max_ = min(df.GRvalue[-2:])
+    max_ = min(df[gr_value][-2:])
     log_conc = np.log10(df.concentration)
     # Normalize AOC by concentration range (width of curve).
     aoc_width = log_conc.max() - log_conc.min()
-    aoc = np.trapz(1 - df.GRvalue, log_conc) / aoc_width
+    aoc = np.trapz(1 - df[gr_value], log_conc) / aoc_width
     return [gr50, max_, aoc, gec50, inf, slope, r2, pval]
 
-def gr_metrics(data, alpha=0.05):
+def gr_metrics(data, alpha=0.05, gr_value='GRvalue'):
     """Compute Growth Response metrics for an entire dataset.
 
     The input dataframe must contain a column named 'concentration' with the
@@ -339,7 +339,7 @@ def gr_metrics(data, alpha=0.05):
                       'pval_GR']
     keys = list(set(data.columns) - non_keys)
     gb = data.groupby(keys)
-    data = [_mklist(k) + _metrics(v, alpha) for k, v in gb]
+    data = [_mklist(k) + _metrics(v, alpha, gr_value) for k, v in gb]
     df = pd.DataFrame(data, columns=keys + metric_columns)
     return df
 
