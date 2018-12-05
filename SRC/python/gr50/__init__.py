@@ -341,3 +341,85 @@ def gr_metrics(data, alpha=0.05):
     data = [_mklist(k) + _metrics(v, alpha) for k, v in gb]
     df = pd.DataFrame(data, columns=keys + metric_columns)
     return df
+
+
+
+def compute_gr_static_toxic(data, time_col='timepoint'):
+    """
+    Computes gr_static and gr_toxic values for a given dataframe.
+
+    The input dataframe must contain at least the following numeric fields:
+    * cell_count: Total number of live cells detected per sample.
+    * cell_count__time0: Total number of live cells in the treatment_duration=0 control for each sample.
+    * cell_count__ctrl: Total number of cells in the no-perturbation control.
+    * dead_count: Total number of dead cells detected per sample.
+    * dead_count__time0: Total number of dead cells in the treatment_duration=0 control for each sample.
+    * dead_count__ctrl: Total number of dead cells in the no-perturbation control.
+    * timepoint : duration of drug treatment per column. The column name can be passed as an argument to
+                 allow flexibility of passing time in any units (typically hours or days).
+
+    Parameters
+    ----------
+    data : pandas dataframe
+       Input counts table on which to compute GR static and toxic values.
+    time_col : Optional[str]
+       Name of column in input dataframe containing duration of drug treatment. Default is timepoint
+
+    Returns
+    -------
+    x : pandas dataframe
+       GR_static and GR_toxic values appended to input dataframe
+    
+    """
+    x = data.copy()
+    # If total number of cells (live+dead) is less than 95% of time 0,
+    # then increase estimate of dead cell count such that total number of cells is
+    # equal to 95% of time 0 control.
+    mc = ((x.dead_count + x.cell_count) <
+          0.95 * (x.cell_count__time0 + x.dead_count__time0))
+    
+    x.loc[mc, 'dead_count'] = np.maximum(x.loc[mc, 'dead_count'],
+                                         (x.loc[mc, 'cell_count__time0'] +
+                                          x.loc[mc, 'dead_count__time0'] -
+                                          np.floor(.95 * x.loc[mc, 'cell_count']) +
+                                          1)
+                                         )
+
+    # If total number of cells (live+dead) is more than 115% of untreated control,
+    # then reduce estimate of dead cell count such that total cells is equal to
+    # 115% of untreated control.
+    hd = ((x.role != 'ctl_vehicle') &
+          ((x.dead_count + x.cell_count) >
+           1.15 * (x.dead_count__ctrl + x.cell_count__ctrl))
+          )
+    
+    x.loc[hd, 'dead_count'] = np. minimum(x.loc[hd, 'dead_count'],
+                                          (x.loc[hd, 'cell_count__ctrl'] +
+                                           x.loc[hd, 'dead_count__ctrl'] -
+                                           np.ceil(1.15 * x.loc[hd, 'cell_count']) -
+                                           1)
+                                          )
+    
+    d_ratio = np.maximum(x.dead_count - x.dead_count__time0, 1)/\
+        (x.cell_count - x.cell_count__time0)
+    d_ratio__ctrl = np.maximum(x.dead_count__ctrl - x.dead_count__time0, 1)/\
+        (x.cell_count__ctrl - x.cell_count__time0)
+    gr = np.log2(x.cell_count/x.cell_count__time0)
+    gr__ctrl = np.log2(x.cell_count__ctrl/x.cell_count__time0)
+
+    gr_static = 2 ** (
+        ((1 + d_ratio) * gr)/
+        ((1 + d_ratio__ctrl) * gr__ctrl)
+        ) - 1
+
+    gr_death = 2 ** (
+        (d_ratio__ctrl * gr__ctrl - d_ratio * gr)/
+         x[time_col]
+        ) - 1
+
+    x['GR_static'] = gr_static
+    x['GR_toxic'] = gr_death
+    
+    return x
+
+
