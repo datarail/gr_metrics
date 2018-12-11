@@ -452,13 +452,17 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
          b = b.reshape(len(b), 1)
          nterms = 35 # Number of terms in Taylor expansion series
          
+         counts_delta_rep_nterms = np.matlib.repmat((-1) * (a-b), 1, nterms)
+         ts_exponents_rep_a =  np.matlib.repmat(range(1, nterms+1), len(a), 1)
+         counts_time0_rep_nterms = np.matlib.repmat(b, 1, nterms)
+         ts_exponents_rep_b =  np.matlib.repmat(range(1, nterms+1), len(b), 1)
+         
          x_gr.loc[fe, 'd_ratio__gr'] = (
              np.maximum(x.loc[fe, 'dead_count'] - x.loc[fe, 'dead_count__time0'], 1).multiply(
                  (1/b + np.diag(
                      np.dot(
-                         np.power(np.matlib.repmat((-1) * (a-b), 1, nterms),
-                                  np.matlib.repmat(range(1, nterms+1), len(a), 1)),
-                         (np.matlib.repmat(b, 1, nterms) * np.matlib.repmat(range(1, nterms+1), len(b), 1)).T
+                         np.power(counts_delta_rep_nterms, ts_exponents_rep_a),
+                         (counts_time0_rep_nterms * ts_exponents_rep_b).T
                          )
                      ).reshape(len(b), 1)
                   ).flatten()
