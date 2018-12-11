@@ -395,7 +395,7 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
                                           1)
                                          )
     logger.warning("%d wells or conditions have 5%% fewer cells than time0 control,"
-                   "estimate of dead_count has been increased to compensate." % np.count_nonzero(mc))
+                   " estimate of dead_count has been increased to compensate." % np.count_nonzero(mc))
 
     # If total number of cells (live+dead) is more than 115% of untreated control,
     # then reduce estimate of dead cell count such that total cells is equal to
@@ -412,7 +412,7 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
                                            1)
                                           )
     logger.warning("%d wells or conditions have too many cells relative to untreated control,"
-                   "estimate of dead_count has been reduced to compensate." % np.count_nonzero(hd)
+                   " estimate of dead_count has been reduced to compensate." % np.count_nonzero(hd)
                    )
     
     d_ratio = np.maximum(x.dead_count - x.dead_count__time0, 1)/\
@@ -440,7 +440,7 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
     fe = (np.abs(x.cell_count - x.cell_count__time0)/x.cell_count) < 1e-10
     if np.any(fe):
          logger.warning("%d wells or conditions have live cell counts approximately equal to time0 control,"
-                        "therefore GR static and toxic values computed numerically using Taylor expansion." %
+                        " therefore GR static and toxic values computed numerically using Taylor expansion." %
                         np.count_nonzero(fe)
                         )
          x_gr = pd.DataFrame(list(zip(gr, gr__ctrl , d_ratio__ctrl)),
@@ -462,7 +462,7 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
                  (1/b + np.diag(
                      np.dot(
                          np.power(counts_delta_rep_nterms, ts_exponents_rep_a),
-                         (counts_time0_rep_nterms * ts_exponents_rep_b).T
+                         np.power(counts_time0_rep_nterms, ts_exponents_rep_b).T
                          )
                      ).reshape(len(b), 1)
                   ).flatten()
