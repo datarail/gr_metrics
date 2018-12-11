@@ -1,5 +1,6 @@
 from __future__ import division
 import math
+import logging
 
 # Computing the full set of metrics requires several "big" packages, but we
 # still want the basic GR computation (which only uses the stdlib) to be
@@ -14,6 +15,7 @@ except ImportError:
 
 
 __all__ = ['compute_gr', 'compute_gr_single', 'gr_metrics', 'logistic']
+logger = logging.getLogger(__name__)
 
 
 def _normalize_log2(n, n_0_0):
@@ -340,11 +342,10 @@ def gr_metrics(data, alpha=0.05, gr_value='GRvalue',
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
                            "to use this function")
-    #non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
-    #               'cell_count__time0', 'GRvalue'))
+    
     metric_columns = ['GR50', 'GRmax', 'GR_AOC', 'GEC50', 'GRinf', 'h_GR', 'r2_GR',
                       'pval_GR']
-    #keys = list(set(data.columns) - non_keys)
+    
     gb = data.groupby(keys)
     data = [_mklist(k) + _metrics(v, alpha, gr_value) for k, v in gb]
     df = pd.DataFrame(data, columns=keys + metric_columns)
@@ -392,8 +393,8 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
                                           np.floor(.95 * x.loc[mc, 'cell_count']) +
                                           1)
                                          )
-    print("{} wells or conditions have 5% fewer cells than time0 control,"
-          "estimate of dead_count has been increased to compensate.".format(len(x[mc])))
+    logger.warning("%d wells or conditions have 5%% fewer cells than time0 control,"
+                   "estimate of dead_count has been increased to compensate." % np.count_nonzero(mc))
 
     # If total number of cells (live+dead) is more than 115% of untreated control,
     # then reduce estimate of dead cell count such that total cells is equal to
@@ -409,8 +410,9 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
                                            np.ceil(1.15 * x.loc[hd, 'cell_count']) -
                                            1)
                                           )
-    print("{} wells or conditions have too many cells relative to untreated control,"
-          "estimate of dead_count has been reduced to compensate.".format(len(x[hd])))
+    logger.warning("%d wells or conditions have too many cells relative to untreated control,"
+                   "estimate of dead_count has been reduced to compensate." % np.count_nonzero(hd)
+                   )
     
     d_ratio = np.maximum(x.dead_count - x.dead_count__time0, 1)/\
         (x.cell_count - x.cell_count__time0)
@@ -436,13 +438,14 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
     # Hence GR values are computed numerically using Taylor expansion
     fe = (np.abs(x.cell_count - x.cell_count__time0)/x.cell_count) < 1e-10
     if np.any(fe):
-         print("{} wells or conditions have live cell counts approximately equal to time0 control,"
-               "therefore GR static and toxic values computed numerically using Taylor expansion.".format(len(x[fe]))
-               )
+         logger.warning("%d wells or conditions have live cell counts approximately equal to time0 control,"
+                        "therefore GR static and toxic values computed numerically using Taylor expansion." %
+                        np.count_nonzero(fe)
+                        )
          x_gr = pd.DataFrame(list(zip(gr, gr__ctrl , d_ratio__ctrl)),
                              columns=['gr', 'gr__ctrl', 'd_ratio__ctrl'])
          x_gr['d_ratio__gr'] = 0
-         a = np.array(x.loc[fe, 'cell_count'])#.reshape(len(a), 1)
+         a = np.array(x.loc[fe, 'cell_count'])
          a = a.reshape(len(a), 1)
          b = np.array(x.loc[fe, 'cell_count__time0'])
          b = b.reshape(len(b), 1)
@@ -453,7 +456,7 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
                  (1/b + np.diag(
                      np.dot(
                          np.power(np.matlib.repmat((-1) * (a-b), 1, nterms),
-                                  np.matlib.repmat(range(1, nterms+1), len(a), 1), dtype=np.longdouble),
+                                  np.matlib.repmat(range(1, nterms+1), len(a), 1)),
                          (np.matlib.repmat(b, 1, nterms) * np.matlib.repmat(range(1, nterms+1), len(b), 1)).T
                          )
                      ).reshape(len(b), 1)
