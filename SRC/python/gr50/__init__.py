@@ -14,7 +14,8 @@ except ImportError:
     _packages_available = False
 
 
-__all__ = ['compute_gr', 'compute_gr_single', 'gr_metrics', 'logistic']
+__all__ = ['compute_gr', 'compute_gr_single', 'gr_metrics', 'logistic',
+           'compute_gr_static_toxic']
 logger = logging.getLogger(__name__)
 
 
