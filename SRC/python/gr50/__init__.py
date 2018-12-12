@@ -1,5 +1,6 @@
 from __future__ import division
 import math
+import logging
 
 # Computing the full set of metrics requires several "big" packages, but we
 # still want the basic GR computation (which only uses the stdlib) to be
@@ -13,7 +14,9 @@ except ImportError:
     _packages_available = False
 
 
-__all__ = ['compute_gr', 'compute_gr_single', 'gr_metrics', 'logistic']
+__all__ = ['compute_gr', 'compute_gr_single', 'gr_metrics', 'logistic',
+           'compute_gr_static_toxic']
+logger = logging.getLogger(__name__)
 
 
 def _normalize_log2(n, n_0_0):
@@ -224,14 +227,15 @@ def _mklist(values):
     else:
         return [values]
 
-def _metrics(df, alpha):
+def _metrics(df, alpha, gr_value='GRvalue'):
+    df = df.sort_values(by='concentration')
     conc_min = df.concentration.min() / 100
     conc_max = df.concentration.max() * 100
     bounds = np.array([[-1, 1], np.log10([conc_min, conc_max]), [0.1, 5]])
     prior = np.array([0.1, np.log10(np.median(df.concentration)), 2])
-    logistic_result = _fit(logistic, df.concentration, df.GRvalue,
+    logistic_result = _fit(logistic, df.concentration, df[gr_value],
                            prior, bounds)
-    flat_result = _fit(_flat, df.concentration, df.GRvalue,
+    flat_result = _fit(_flat, df.concentration, df[gr_value],
                        prior[[0]], bounds[[0]])
     pval = _calculate_pval(logistic_result, flat_result, len(df.concentration))
     if pval > alpha or not logistic_result.success:
@@ -245,23 +249,24 @@ def _metrics(df, alpha):
         gec50 = 0.0
         # Must be non-zero or the logistic function will error.
         slope = 0.01
-        r2 = _rsquare(flat_result.x, _flat, df.concentration, df.GRvalue)
+        r2 = _rsquare(flat_result.x, _flat, df.concentration, df[gr_value])
     else:
         gr50 = _logistic_inv(0.5, logistic_result.x)
         inf = logistic_result.x[0]
         gec50 = 10 ** logistic_result.x[1]
         slope = logistic_result.x[2]
-        r2 = _rsquare(logistic_result.x, logistic, df.concentration, df.GRvalue)
+        r2 = _rsquare(logistic_result.x, logistic, df.concentration, df[gr_value])
     # Take the minimum across the highest 2 doses to minimize the effect of
     # outliers (robust minimum).
-    max_ = min(df.GRvalue[-2:])
+    max_ = min(df[gr_value][-2:])
     log_conc = np.log10(df.concentration)
     # Normalize AOC by concentration range (width of curve).
     aoc_width = log_conc.max() - log_conc.min()
-    aoc = np.trapz(1 - df.GRvalue, log_conc) / aoc_width
+    aoc = np.trapz(1 - df[gr_value], log_conc) / aoc_width
     return [gr50, max_, aoc, gec50, inf, slope, r2, pval]
 
-def gr_metrics(data, alpha=0.05):
+def gr_metrics(data, alpha=0.05, gr_value='GRvalue',
+               keys=['cell_line', 'agent', 'timepoint']):
     """Compute Growth Response metrics for an entire dataset.
 
     The input dataframe must contain a column named 'concentration' with the
@@ -305,6 +310,12 @@ def gr_metrics(data, alpha=0.05):
         Input data on which to compute the metrics.
     alpha : Optional[float]
         Significance level for the F-test.
+    gr_value : Optional[str]
+        Name of column containing GR values on which metrics are to be computed.
+        Default is 'GRvalue'. Additional options include 'GR_static' and 'GR_toxic'.
+    keys : list of str
+        Name of columns by which to group the input dataframe.
+        Default is ['cell_line', 'agent', 'timepoint'].
 
     Returns
     -------
@@ -332,12 +343,140 @@ def gr_metrics(data, alpha=0.05):
     if not _packages_available:
         raise RuntimeError("Please install numpy, scipy and pandas in order "
                            "to use this function")
-    non_keys = set(('concentration', 'cell_count', 'cell_count__ctrl',
-                    'cell_count__time0', 'GRvalue'))
+    
     metric_columns = ['GR50', 'GRmax', 'GR_AOC', 'GEC50', 'GRinf', 'h_GR', 'r2_GR',
                       'pval_GR']
-    keys = list(set(data.columns) - non_keys)
+    
     gb = data.groupby(keys)
-    data = [_mklist(k) + _metrics(v, alpha) for k, v in gb]
+    data = [_mklist(k) + _metrics(v, alpha, gr_value) for k, v in gb]
     df = pd.DataFrame(data, columns=keys + metric_columns)
     return df
+
+
+def compute_gr_static_toxic(data, time_col='timepoint'):
+    """
+    Computes gr_static and gr_toxic values for a given dataframe.
+
+    The input dataframe must contain at least the following numeric fields:
+    * cell_count: Total number of live cells detected per sample.
+    * cell_count__time0: Total number of live cells in the treatment_duration=0 control for each sample.
+    * cell_count__ctrl: Total number of cells in the no-perturbation control.
+    * dead_count: Total number of dead cells detected per sample.
+    * dead_count__time0: Total number of dead cells in the treatment_duration=0 control for each sample.
+    * dead_count__ctrl: Total number of dead cells in the no-perturbation control.
+    * timepoint : duration of drug treatment per column. The column name can be passed as an argument to
+                 allow flexibility of passing time in any units (typically hours or days).
+    * role : column that specifies if the sample is 'negative_control', 'positive_control', or 'treatment'.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+       Input counts table on which to compute GR static and toxic values.
+    time_col : Optional[str]
+       Name of column in input dataframe containing duration of drug treatment. Default is 'timepoint'.
+
+    Returns
+    -------
+    x : pandas.DataFrame
+       GR_static and GR_toxic values appended to input dataframe
+    
+    """
+    x = data.copy()
+    # If total number of cells (live+dead) is less than 95% of time 0,
+    # then increase estimate of dead cell count such that total number of cells is
+    # equal to 95% of time 0 control.
+    mc = ((x.dead_count + x.cell_count) <
+          0.95 * (x.cell_count__time0 + x.dead_count__time0))  
+    
+    x.loc[mc, 'dead_count'] = np.maximum(x.loc[mc, 'dead_count'],
+                                         (x.loc[mc, 'cell_count__time0'] +
+                                          x.loc[mc, 'dead_count__time0'] -
+                                          np.floor(.95 * x.loc[mc, 'cell_count']) +
+                                          1)
+                                         )
+    logger.warning("%d wells or conditions have 5%% fewer cells than time0 control,"
+                   " estimate of dead_count has been increased to compensate." % np.count_nonzero(mc))
+
+    # If total number of cells (live+dead) is more than 115% of untreated control,
+    # then reduce estimate of dead cell count such that total cells is equal to
+    # 115% of untreated control.
+    hd = ((x.role != 'negative_control') &
+          ((x.dead_count + x.cell_count) >
+           1.15 * (x.dead_count__ctrl + x.cell_count__ctrl))
+          )
+    
+    x.loc[hd, 'dead_count'] = np. minimum(x.loc[hd, 'dead_count'],
+                                          (x.loc[hd, 'cell_count__ctrl'] +
+                                           x.loc[hd, 'dead_count__ctrl'] -
+                                           np.ceil(1.15 * x.loc[hd, 'cell_count']) -
+                                           1)
+                                          )
+    logger.warning("%d wells or conditions have too many cells relative to untreated control,"
+                   " estimate of dead_count has been reduced to compensate." % np.count_nonzero(hd)
+                   )
+    
+    d_ratio = np.maximum(x.dead_count - x.dead_count__time0, 1)/\
+        (x.cell_count - x.cell_count__time0)
+    d_ratio__ctrl = np.maximum(x.dead_count__ctrl - x.dead_count__time0, 1)/\
+        (x.cell_count__ctrl - x.cell_count__time0)
+    gr = np.log2(x.cell_count/x.cell_count__time0)
+    gr__ctrl = np.log2(x.cell_count__ctrl/x.cell_count__time0)
+
+    gr_static = 2 ** (
+        ((1 + d_ratio) * gr)/
+        ((1 + d_ratio__ctrl) * gr__ctrl)
+        ) - 1
+
+    gr_toxic = 2 ** (
+        (d_ratio__ctrl * gr__ctrl - d_ratio * gr)/
+         x[time_col]
+        ) - 1
+
+    x['GR_static'] = gr_static
+    x['GR_toxic'] = gr_toxic
+
+    # If number of live cells post treatment ~= time 0 control, analytical solution is not permissive.
+    # Hence GR values are computed numerically using Taylor expansion
+    fe = (np.abs(x.cell_count - x.cell_count__time0)/x.cell_count) < 1e-10
+    if np.any(fe):
+         logger.warning("%d wells or conditions have live cell counts approximately equal to time0 control,"
+                        " therefore GR static and toxic values computed numerically using Taylor expansion." %
+                        np.count_nonzero(fe)
+                        )
+         x_gr = pd.DataFrame(list(zip(gr, gr__ctrl , d_ratio__ctrl)),
+                             columns=['gr', 'gr__ctrl', 'd_ratio__ctrl'])
+         x_gr['d_ratio__gr'] = 0
+         a = np.array(x.loc[fe, 'cell_count'])
+         a = a.reshape(len(a), 1)
+         b = np.array(x.loc[fe, 'cell_count__time0'])
+         b = b.reshape(len(b), 1)
+         nterms = 35 # Number of terms in Taylor expansion series
+         
+         counts_delta_rep_nterms = np.matlib.repmat((-1) * (a-b), 1, nterms)
+         ts_exponents_rep_a =  np.matlib.repmat(range(1, nterms+1), len(a), 1)
+         counts_time0_rep_nterms = np.matlib.repmat(b, 1, nterms)
+         ts_exponents_rep_b =  np.matlib.repmat(range(1, nterms+1), len(b), 1)
+         
+         x_gr.loc[fe, 'd_ratio__gr'] = (
+             np.maximum(x.loc[fe, 'dead_count'] - x.loc[fe, 'dead_count__time0'], 1).multiply(
+                 (1/b + np.diag(
+                     np.dot(
+                         np.power(counts_delta_rep_nterms, ts_exponents_rep_a),
+                         np.power(counts_time0_rep_nterms, ts_exponents_rep_b).T
+                         )
+                     ).reshape(len(b), 1)
+                  ).flatten()
+                 )
+             )
+
+         x.loc[fe, 'GR_static'] = 2 ** (
+             (x_gr.loc[fe, 'gr'] + x_gr.loc[fe, 'd_ratio__gr'])/
+             ((1 + x_gr.loc[fe, 'd_ratio__ctrl']) * x_gr.loc[fe, 'gr__ctrl'])
+             ) - 1
+
+         x.loc[fe, 'GR_toxic'] = 2 ** (
+             ((x_gr.loc[fe, 'd_ratio__ctrl'] * x_gr.loc[fe, 'gr__ctrl'] - x_gr.loc[fe, 'd_ratio__gr'])/
+              x.loc[fe, time_col])
+             ) - 1      
+    
+    return x
