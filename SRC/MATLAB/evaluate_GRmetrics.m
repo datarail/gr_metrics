@@ -1,4 +1,4 @@
-function t_out = evaluate_GRmetrics(t_in, pcutoff)
+function t_out = evaluate_GRmetrics(t_in, pcutoff, collapseKeys)
 % t_out = evaluate_GRmetrics(t_in, pcutoff)
 %   evalute the GR metrics (GR50, GRinf, ...) on a table with columns:
 %   GRvalue and concentration. All columns except 'cell_count*' will be
@@ -11,9 +11,40 @@ assert(all(ismember({'GRvalue', 'concentration' }, ...
     t_in.Properties.VariableNames)), ...
     'Need the columns ''GRvalue'', ''concentration'' in the data')
 
+% collapse the data (if neeeded)
+if ~isempty(collapseKeys)
+    t_in = collapsed_data(t_in, collapseKeys);
+end
+
 keys = setdiff(t_in.Properties.VariableNames, {'concentration', ...
     'cell_count' 'cell_count__ctrl' 'cell_count__time0' 'GRvalue'}, 'stable');
 MetricsNames = {'GR50' 'GRmax' 'GR_AOC' 'GEC50' 'GRinf' 'h_GR' 'r2_GR' 'pval_GR'};
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function t_data_collapsed = collapsed_data(t_data, collapseKeys)
+    % average the results (GR values) by removing one key
+    if ischar(collapseKeys), collapseKeys = {collapseKeys}; end
+    assert(all(ismember(collapseKeys, t_data.Properties.VariableNames)))
+
+    % changed from averaging cell counts to averaging GR values - NC 07/20/2017
+    cell_count_columns = {'cell_count' 'cell_count__ctrl' 'cell_count__time0'};
+
+    GR_column = {'GRvalue'};
+
+    [t_data_collapsed, ~, idx] = unique(t_data(:,setdiff(t_data.Properties.VariableNames, ...
+        [collapseKeys cell_count_columns GR_column], 'stable')), 'stable');
+
+    t_data_collapsed = [t_data_collapsed array2table(NaN(height(t_data_collapsed),1), ...
+        'variableNames', GR_column)];
+    for i=1:height(t_data_collapsed)
+      %for j=1:length(cell_count_columns)
+      %      t_data_collapsed.(cell_count_columns{j})(i) = ...
+      %          mean(t_data.(cell_count_columns{j})(idx==i));
+      % end
+        t_data_collapsed.(char(GR_column))(i) = ...
+            mean(t_data.(char(GR_column))(idx==i));
+    end
+end
 
 % convert string keys to categorical
 for ik = keys
@@ -165,6 +196,7 @@ function [fit_result, gof] = sigmoidal_fit(c, g, ranges, priors)
 fitopt = fitoptions('Method','NonlinearLeastSquares',...
     'Lower', ranges(1,:),...
     'Upper', ranges(2,:),...
+    'MaxIter', 500,...
     'Startpoint', priors);
 % sigmoidal function for concentrations in the log domain
 f = fittype('a + (1-a) ./ ( 1 + (x*(10.^b)).^c)', 'options', fitopt);

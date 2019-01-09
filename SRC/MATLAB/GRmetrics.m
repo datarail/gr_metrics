@@ -118,10 +118,12 @@ if any(~ismember({'cell_count__ctrl' 'cell_count__time0'}, t_data.Properties.Var
 
 end
 
-%% collapse the data (if neeeded)
-if ~isempty(p.collapseKeys)
-    t_data = collapsed_data(t_data, p.collapseKeys);
-end
+%% changed to averaging GR values after calculation instead of
+%% averaging cell counts before GR value calculation - NC 07/20/2017
+%%% collapse the data (if neeeded)
+%if ~isempty(p.collapseKeys)
+%    t_data = collapsed_data(t_data, p.collapseKeys);
+%end
 
 %% evaluate the GR value for the data
 t_GRvalues = evaluate_GRvalue(t_data);
@@ -130,7 +132,7 @@ t_GRvalues = sortrows(t_GRvalues); % for consistent output
 %% calculate the GR metrics
 if ~isempty(output) || nargout>1
     % skipped if not needed for output
-    t_GRmetrics = evaluate_GRmetrics(t_GRvalues, p.pcutoff);
+    t_GRmetrics = evaluate_GRmetrics(t_GRvalues, p.pcutoff, p.collapseKeys);
     t_GRmetrics = sortrows(t_GRmetrics); % for consistent output
 end
 %% write the output files
@@ -229,25 +231,25 @@ t_data.time0_tag = [];
 end
 
 
-
+% changed to averaging GR values after calculation instead of
+% averaging cell counts before calculating GR values - NC 07/20/2017
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function t_data_collapsed = collapsed_data(t_data, collapseKeys)
-% average the results (cell count) by removing one key
-if ischar(collapseKeys), collapseKeys = {collapseKeys}; end
-assert(all(ismember(collapseKeys, t_data.Properties.VariableNames)))
-
-cell_count_columns = {'cell_count' 'cell_count__ctrl' 'cell_count__time0'};
-
-[t_data_collapsed, ~, idx] = unique(t_data(:,setdiff(t_data.Properties.VariableNames, ...
-    [collapseKeys cell_count_columns], 'stable')), 'stable');
-
-t_data_collapsed = [t_data_collapsed array2table(NaN(height(t_data_collapsed),3), ...
-    'variableNames', cell_count_columns)];
-for i=1:height(t_data_collapsed)
-    for j=1:length(cell_count_columns)
-        t_data_collapsed.(cell_count_columns{j})(i) = ...
-            mean(t_data.(cell_count_columns{j})(idx==i));
-    end
-end
-
-end
+%function t_data_collapsed = collapsed_data(t_data, collapseKeys)
+%% average the results (cell count) by removing one key
+%if ischar(collapseKeys), collapseKeys = {collapseKeys}; end
+%assert(all(ismember(collapseKeys, t_data.Properties.VariableNames)))
+%
+%cell_count_columns = {'cell_count' 'cell_count__ctrl' 'cell_count__time0'};
+%
+%[t_data_collapsed, ~, idx] = unique(t_data(:,setdiff(t_data.Properties.VariableNames, ...
+%    [collapseKeys cell_count_columns], 'stable')), 'stable');
+%
+%t_data_collapsed = [t_data_collapsed array2table(NaN(height(t_data_collapsed),3), ...
+%    'variableNames', cell_count_columns)];
+%for i=1:height(t_data_collapsed)
+%    for j=1:length(cell_count_columns)
+%        t_data_collapsed.(cell_count_columns{j})(i) = ...
+%            mean(t_data.(cell_count_columns{j})(idx==i));
+%    end
+%end
+%end
