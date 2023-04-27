@@ -404,11 +404,11 @@ def compute_gr_static_toxic(data, time_col='timepoint'):
            1.15 * (x.dead_count__ctrl + x.cell_count__ctrl))
           )
     
-    x.loc[hd, 'dead_count'] = np. minimum(x.loc[hd, 'dead_count'],
+    x.loc[hd, 'dead_count'] = np.maximum( 0, np.minimum(x.loc[hd, 'dead_count'],
                                           ( np.ceil(1.15 * (x.loc[hd, 'cell_count__ctrl'] +
                                            x.loc[hd, 'dead_count__ctrl'])) -
                                            x.loc[hd, 'cell_count'] - 1 )
-                                          )
+                                          ) )
     logger.warning("%d wells or conditions have too many cells relative to untreated control,"
                    " estimate of dead_count has been reduced to compensate." % np.count_nonzero(hd)
                    )
